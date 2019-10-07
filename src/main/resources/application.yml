@@ -1,0 +1,46 @@
+# Local RabbitMQ binder config
+spring:
+  cloud:
+    stream:
+      rabbit:
+        bindings:
+          output:
+            producer:
+              # A SpEL expression to determine the routing key to use when publishing messages
+              routing-key-expression: '"test.event"'
+          input:
+            consumer:
+              # The routing key with which to bind the queue to the exchange
+              bindingRoutingKey: test.event
+      bindings:
+        input:
+          # Name of the Exchange
+          destination: demo-exchange
+          contentType: application/json
+          binder: local_rabbit
+          # Name of the Queue
+          # each application instance will have a dedicated RabbitMQ Consumer instance for its group’s Queue
+          group: demo-queue
+          # Disable default binder retry
+          # if not configured, default binder will assume 3 attempts before it considered the retries are exhausted
+          # if set to 1, binder retry will be disabled and message are routed to DLQ right-away when any exception
+          consumer:
+            max-attempts: 1
+        output:
+          # Name of the Exchange
+          destination: demo-exchange
+          contentType: application/json
+          group: demo-queue
+          binder: local_rabbit
+      binders:
+        local_rabbit:
+          type: rabbit
+          environment:
+            spring:
+              rabbitmq:
+                host: localhost
+                port: 5672
+                username: guest
+                password: guest
+                connection-timeout: 60000
+                acknowledge-mode: manual
