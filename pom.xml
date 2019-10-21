@@ -96,13 +96,6 @@
 			<artifactId>spring-cloud-sleuth-zipkin</artifactId>
 		</dependency>
 
-		<!-- the reoorter library which sends trace (span) data to Zipkin over https -->
-		<!--<dependency>-->
-			<!--<groupId>io.zipkin.reporter2</groupId>-->
-			<!--<artifactId>zipkin-sender-okhttp3</artifactId>-->
-			<!--<version>2.10.3</version>-->
-		<!--</dependency>-->
-
 		<!-- register with Eureka to enable lookup by client -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
