@@ -7,11 +7,13 @@ spring:
           output:
             producer:
               # A SpEL expression to determine the routing key to use when publishing messages
-              routing-key-expression: '"test.event"'
+              routing-key-expression: '"test.event.1"'
           input:
             consumer:
               # The routing key with which to bind the queue to the exchange
-              bindingRoutingKey: test.event
+              bindingRoutingKey: test.event.1
+              # consumer must manually acknowledge message
+              acknowledge-mode: manual
       bindings:
         input:
           # Name of the Exchange
@@ -26,6 +28,9 @@ spring:
           # if set to 1, binder retry will be disabled and message are routed to DLQ right-away when any exception
           consumer:
             max-attempts: 1
+            # The number of concurrent consumers to initially start for each listener
+            # when ordering of message doesn't matter
+            concurrency: 2
         output:
           # Name of the Exchange
           destination: demo-exchange
