@@ -47,8 +47,9 @@ consumer acknowledgements and publisher confirms.
 When using confirms, producers recovering from a channel or connection failure should retransmit any 
 messages for which an acknowledgement has not been received from the broker. There is a possibility 
 of message duplication here, because the broker might have sent a confirmation that never reached 
-the producer (due to network failures, etc). Therefore consumer applications will need to perform 
-de-duplication or handle incoming messages in an idempotent manner.
+the producer (due to network failures, etc). Therefore consumers must be prepared to handle deliveries 
+they have seen in the past. It is recommended that consumer implementation is designed to be idempotent 
+rather than to explicitly perform deduplication.
 
 ### Heartbeat and Keep-Alive
 Not only can networks fail, firewalls can interrupt connections they consider to be idle. For example,
@@ -120,6 +121,7 @@ e.g. 2 nodes in a 3 node cluster or 3 nodes in a 5 node cluster.
     replica of the master over time, once consumers have drained messages that 
     only exist on the master. If the master queue fails before all unsychronised 
     messages are drained, those messages will be lost. 
+    
 - ha-sync-mode: automatic
     a queue will automatically synchronise when a new mirror joins.  If queues 
     are small, or you have a fast network between RabbitMQ nodes and the 
