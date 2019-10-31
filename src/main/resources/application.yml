@@ -44,7 +44,8 @@ spring:
             spring:
               rabbitmq:
                 host: localhost
-                port: 5672
+#                port: 5672
+                port: 5674
                 username: guest
                 password: guest
                 connection-timeout: 60000
