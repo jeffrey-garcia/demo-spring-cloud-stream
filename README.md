@@ -140,3 +140,25 @@ and will require client applications to be edited, recompiled and redeployed sho
 of the cluster change or the number of nodes in the cluster change. Instead, we recommend a more 
 abstracted approach: this could be a dynamic DNS service which has a very short TTL configuration, 
 or a plain TCP load balancer.
+
+### Setup RabbitMQ cluster in local machine
+##### Mac OSX
+- Create a shell script:
+    ```bash
+    #!/bin/bash
+    
+    export RABBITMQ_CONF_ENV_FILE=/Users/xxx/tmp/rabbitmq-env.config
+    clear && /usr/local/Cellar/rabbitmq/3.6.14/sbin/rabbitmq-server
+    ```
+- Create the RabbitMQ environment config file:
+    ```sh
+    CONFIG_FILE=/Users/xxx/tmp/rabbitmq
+    NODE_IP_ADDRESS=0.0.0.0
+    NODENAME=rabbit_n1@HOSTNAME
+    NODE_PORT=5674
+    ```
+- Customize the ports for management console in the rabbitmq.config file, based on the []class config file](https://github.com/rabbitmq/rabbitmq-server/blob/v3.7.x/docs/rabbitmq.config.example)
+    ```sh
+       {listener, [{port,     15674}
+    ```
+    un-comment the line above

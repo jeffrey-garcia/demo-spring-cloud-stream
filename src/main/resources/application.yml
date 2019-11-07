@@ -8,6 +8,8 @@ spring:
             producer:
               # A SpEL expression to determine the routing key to use when publishing messages
               routing-key-expression: '"test.event.1"'
+              # The routing key  to use when publishing messages
+              bindingRoutingKey: test.event.1
           input:
             consumer:
               # The routing key with which to bind the queue to the exchange
