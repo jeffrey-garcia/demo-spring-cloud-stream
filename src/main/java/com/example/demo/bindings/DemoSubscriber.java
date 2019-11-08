@@ -25,13 +25,17 @@ public class DemoSubscriber {
         try {
             // simulate I/O latency in the processing of message
             // TODO: put a hard-delay less than the pre-configured hystrix timeout otherwise hystrix will break the circuit
-            Thread.sleep(4000);
+            Thread.sleep(30000);
         } catch (InterruptedException e) {
+            channel.basicNack(deliveryTag, false, true);
         }
 
-        LOGGER.debug("finish processing message tag: {}, proceed to acknowledge", deliveryTag);
-        // acknowledge message is processed and can be removed from queue
+        // if the system crashed before the positive acknowledge,
+        // the message will be re-queued and won't be lost
+
+        // positive acknowledge to instruct RabbitMQ to record a message as delivered and can be discarded.
         channel.basicAck(deliveryTag, false);
+        LOGGER.debug("finish processing message tag: {}, proceed to acknowledge", deliveryTag);
     }
 
 }
