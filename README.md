@@ -225,7 +225,7 @@ rabbitmq-server
 ```
 
 ##### <a name="setup_rabbitmq_cluster"></a>Setup RabbitMQ cluster in local machine 
- Mac OSX (Rabbit MQ before v3.7 using Erlang based configuration)
+ Adding a new Rabbit node on Mac OSX (Rabbit MQ before v3.7 using Erlang based configuration) 
 - Create a shell script:
     ```bash
     #!/bin/bash
@@ -244,3 +244,10 @@ rabbitmq-server
        {listener, [{port,     15674}
     ```
     un-comment the line above
+    
+- configure the new RabbitMQ node to join the cluster, make sure both the RabbitMQ nodes are started
+    ```sh
+    rabbitmqctl -n new_node@localhost stop_app
+    rabbitmqctl -n new_node@localhost join_cluster old_node@localhost
+    rabbitmqctl -n new_node@localhost start_app
+    ```

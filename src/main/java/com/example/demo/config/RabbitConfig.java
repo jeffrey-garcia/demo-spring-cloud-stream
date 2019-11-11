@@ -5,6 +5,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,6 +16,21 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitConfig.class);
+
+//    @Bean
+//    public ConnectionFactory defaultConnectionFactory() {
+//        CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
+//        connectionFactory.setRequestedHeartBeat(15000);
+//        return connectionFactory;
+//    }
+//
+//    @Bean
+//    public SimpleMessageListenerContainer messageListenerContainer(@Autowired ConnectionFactory connectionFactory) {
+//        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+//        container.setConnectionFactory(connectionFactory);
+//        container.setRecoveryInterval(15000);
+//        return container;
+//    }
 
     @RabbitListener(queues = "demo-exchange.demo-queue-2")
     public void onMessage(Message message, Channel channel) throws Exception {

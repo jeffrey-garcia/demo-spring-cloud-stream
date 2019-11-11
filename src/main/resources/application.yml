@@ -10,12 +10,16 @@ spring:
               routing-key-expression: '"test.event.1"'
               # The routing key  to use when publishing messages
               bindingRoutingKey: test.event.1
+              # make the channel transactional for each publish, guarantee a message isn't lost
+              transacted: true
           input:
             consumer:
               # The routing key with which to bind the queue to the exchange
               bindingRoutingKey: test.event.1
               # consumer must manually acknowledge message
               acknowledge-mode: manual
+              # The maximum number of consumers
+              maxConcurrency: 3
       bindings:
         input:
           # Name of the Exchange
@@ -45,10 +49,13 @@ spring:
           environment:
             spring:
               rabbitmq:
-                host: localhost
-                port: 5672
-#                port: 5674
+                # connect to RabbitMQ cluster and fail-over at the client-side regardless a HA-proxy
+                addresses: localhost:5674,localhost:5672
+#                host: localhost
+#                port: 5672
                 username: guest
                 password: guest
                 connection-timeout: 60000
                 acknowledge-mode: manual
+                # Requested heartbeat timeout, in seconds; zero for none.
+                requested-heartbeat: 15000
