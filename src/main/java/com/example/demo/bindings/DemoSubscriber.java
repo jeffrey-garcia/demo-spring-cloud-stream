@@ -7,8 +7,12 @@ import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.messaging.Sink;
+import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.support.ErrorMessage;
+
+import java.io.IOException;
 
 @EnableBinding(Sink.class)
 public class DemoSubscriber {
@@ -18,7 +22,7 @@ public class DemoSubscriber {
     public void listen(
             @Payload String messageString,
             @Header(AmqpHeaders.CHANNEL) Channel channel,
-            @Header(AmqpHeaders.DELIVERY_TAG) Long deliveryTag) throws Exception
+            @Header(AmqpHeaders.DELIVERY_TAG) Long deliveryTag) throws IOException
     {
         LOGGER.debug("message received from queue-1, payload: {}", messageString);
 
@@ -38,6 +42,15 @@ public class DemoSubscriber {
             // reject the message and re-queue it, if a DLQ is configured it will be routed to the DLQ
             channel.basicNack(deliveryTag, false, true);
         }
+    }
+
+    @ServiceActivator(inputChannel = "errorChannel")
+    public void onError(ErrorMessage message) {
+        /**
+         * Intercept messages sent to the errorChannel
+         */
+        // capture any delivery error
+        LOGGER.debug("onError: headers:{}, payload:{}", message.getHeaders(), message.getPayload().getMessage());
     }
 
 }
