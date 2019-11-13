@@ -19,7 +19,6 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.support.ChannelInterceptor;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
@@ -83,6 +82,7 @@ public class MessagingConfig {
 
                                 switch (SupportedBinders.valueOf(binderType)) {
                                     case rabbit:
+                                        // at-least once approach for diverting the message to another queue
                                         try {
                                             Class rabbitChannelClass = Class.forName("com.rabbitmq.client.Channel");
                                             Class amqpHeadersClass = Class.forName("org.springframework.amqp.support.AmqpHeaders");
@@ -97,34 +97,35 @@ public class MessagingConfig {
                                             Long deliveryTag = message.getHeaders().get(deliveryTagValue, Long.class);
 
                                             Method basicNackMethod = rabbitChannelClass.getDeclaredMethod("basicNack", long.class, boolean.class, boolean.class);
-                                            basicNackMethod.invoke(rabbitChannel, deliveryTag, false, false);
 
-                                            // TODO: divert the message to dead-letter-queue with exponential backoff to avoid infinite retry
-                                            String exchangeName = bindingProperties.getDestination();
-                                            String queueName = "demo-queue-2";
-                                            String routingKey = "test.event.2";
+                                            try {
+                                                // TODO: divert the message to dead-letter-queue with exponential backoff to avoid infinite retry
+                                                String exchangeName = bindingProperties.getDestination();
+                                                String queueName = "demo-queue-2";
+                                                String routingKey = "test.event.2";
 
-                                            Object rabbitMessagingTemplate = beanFactory.getBean("rabbitMessagingTemplate");
-                                            Method sendAndReceiveMethod = rabbitMessagingTemplate.getClass().getDeclaredMethod(
-                                                    "sendAndReceive",
-                                                    java.lang.String.class,
-                                                    java.lang.String.class,
-                                                    org.springframework.messaging.Message.class);
-                                            Message<?> reply = (Message<?>) sendAndReceiveMethod.invoke(rabbitMessagingTemplate, exchangeName, routingKey, message);
+                                                Object rabbitMessagingTemplate = beanFactory.getBean("rabbitMessagingTemplate");
+                                                Method sendAndReceiveMethod = rabbitMessagingTemplate.getClass().getDeclaredMethod(
+                                                        "sendAndReceive",
+                                                        java.lang.String.class,
+                                                        java.lang.String.class,
+                                                        org.springframework.messaging.Message.class);
 
-                                            LOGGER.debug("message rejected and re-queued");
+                                                Message<?> reply = (Message<?>) sendAndReceiveMethod.invoke(rabbitMessagingTemplate, exchangeName, routingKey, message);
+                                                LOGGER.debug("message routed to: {}", queueName);
 
-                                        } catch (ClassNotFoundException e) {
-                                            LOGGER.error(e.getMessage(), e);
-                                        } catch (NoSuchMethodException e) {
-                                            LOGGER.error(e.getMessage(), e);
-                                        } catch (InvocationTargetException e) {
-                                            LOGGER.error(e.getMessage(), e);
-                                        } catch (NoSuchFieldException e) {
-                                            LOGGER.error(e.getMessage(), e);
-                                        } catch (IllegalAccessException e) {
-                                            LOGGER.error(e.getMessage(), e);
-                                        } catch (ClassCastException e) {
+                                                // TODO: if crash at this line (before message acknowledgement) can lead to duplicate message
+                                                basicNackMethod.invoke(rabbitChannel, deliveryTag, false, false);
+                                                LOGGER.debug("message acknowledged");
+
+                                            } catch (Exception e) {
+                                                LOGGER.error(e.getMessage(), e);
+
+                                                basicNackMethod.invoke(rabbitChannel, deliveryTag, false, true);
+                                                LOGGER.debug("message returned and re-queued");
+                                            }
+
+                                        } catch (Exception e) {
                                             LOGGER.error(e.getMessage(), e);
                                         }
 
