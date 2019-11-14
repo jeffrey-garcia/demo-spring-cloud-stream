@@ -72,7 +72,7 @@ public class MessagingConfig {
                     final BindingProperties bindingProperties = getBinding(beanName);
                     // ensure highest execution priority by setting it to
                     // the first element in the channel interceptor list
-                    if (bindingProperties != null && !beanName.equals("output"))
+                    if (bindingProperties != null && beanName.equals("input"))
                         abstractMessageChannel.addInterceptor(0, new ChannelInterceptor() {
                             @Nullable
                             @Override
@@ -83,51 +83,51 @@ public class MessagingConfig {
                                 switch (SupportedBinders.valueOf(binderType)) {
                                     case rabbit:
                                         // at-least once approach for diverting the message to another queue
-                                        try {
-                                            Class rabbitChannelClass = Class.forName("com.rabbitmq.client.Channel");
-                                            Class amqpHeadersClass = Class.forName("org.springframework.amqp.support.AmqpHeaders");
-
-                                            Field channelField = amqpHeadersClass.getField("CHANNEL");
-                                            Field deliveryTagField = amqpHeadersClass.getField("DELIVERY_TAG");
-
-                                            String channelValue = (String)channelField.get(null);
-                                            String deliveryTagValue = (String)deliveryTagField.get(null);
-
-                                            Object rabbitChannel = message.getHeaders().get(channelValue, rabbitChannelClass);
-                                            Long deliveryTag = message.getHeaders().get(deliveryTagValue, Long.class);
-
-                                            Method basicNackMethod = rabbitChannelClass.getDeclaredMethod("basicNack", long.class, boolean.class, boolean.class);
-
-                                            try {
-                                                // TODO: divert the message to dead-letter-queue with exponential backoff to avoid infinite retry
-                                                String exchangeName = bindingProperties.getDestination();
-                                                String queueName = "demo-queue-2";
-                                                String routingKey = "test.event.2";
-
-                                                Object rabbitMessagingTemplate = beanFactory.getBean("rabbitMessagingTemplate");
-                                                Method sendAndReceiveMethod = rabbitMessagingTemplate.getClass().getDeclaredMethod(
-                                                        "sendAndReceive",
-                                                        java.lang.String.class,
-                                                        java.lang.String.class,
-                                                        org.springframework.messaging.Message.class);
-
-                                                Message<?> reply = (Message<?>) sendAndReceiveMethod.invoke(rabbitMessagingTemplate, exchangeName, routingKey, message);
-                                                LOGGER.debug("message routed to: {}", queueName);
-
-                                                // TODO: if crash at this line (before message acknowledgement) can lead to duplicate message
-                                                basicNackMethod.invoke(rabbitChannel, deliveryTag, false, false);
-                                                LOGGER.debug("message acknowledged");
-
-                                            } catch (Exception e) {
-                                                LOGGER.error(e.getMessage(), e);
-
-                                                basicNackMethod.invoke(rabbitChannel, deliveryTag, false, true);
-                                                LOGGER.debug("message returned and re-queued");
-                                            }
-
-                                        } catch (Exception e) {
-                                            LOGGER.error(e.getMessage(), e);
-                                        }
+//                                        try {
+//                                            Class rabbitChannelClass = Class.forName("com.rabbitmq.client.Channel");
+//                                            Class amqpHeadersClass = Class.forName("org.springframework.amqp.support.AmqpHeaders");
+//
+//                                            Field channelField = amqpHeadersClass.getField("CHANNEL");
+//                                            Field deliveryTagField = amqpHeadersClass.getField("DELIVERY_TAG");
+//
+//                                            String channelValue = (String)channelField.get(null);
+//                                            String deliveryTagValue = (String)deliveryTagField.get(null);
+//
+//                                            Object rabbitChannel = message.getHeaders().get(channelValue, rabbitChannelClass);
+//                                            Long deliveryTag = message.getHeaders().get(deliveryTagValue, Long.class);
+//
+//                                            Method basicNackMethod = rabbitChannelClass.getDeclaredMethod("basicNack", long.class, boolean.class, boolean.class);
+//
+//                                            try {
+//                                                // TODO: divert the message to dead-letter-queue with exponential backoff to avoid infinite retry
+//                                                String exchangeName = bindingProperties.getDestination();
+//                                                String queueName = "demo-queue-2";
+//                                                String routingKey = "test.event.2";
+//
+//                                                Object rabbitMessagingTemplate = beanFactory.getBean("rabbitMessagingTemplate");
+//                                                Method sendAndReceiveMethod = rabbitMessagingTemplate.getClass().getDeclaredMethod(
+//                                                        "sendAndReceive",
+//                                                        java.lang.String.class,
+//                                                        java.lang.String.class,
+//                                                        org.springframework.messaging.Message.class);
+//
+//                                                Message<?> reply = (Message<?>) sendAndReceiveMethod.invoke(rabbitMessagingTemplate, exchangeName, routingKey, message);
+//                                                LOGGER.debug("message routed to: {}", queueName);
+//
+//                                                // TODO: if crash at this line (before message acknowledgement) can lead to duplicate message
+//                                                basicNackMethod.invoke(rabbitChannel, deliveryTag, false, false);
+//                                                LOGGER.debug("message acknowledged");
+//
+//                                            } catch (Exception e) {
+//                                                LOGGER.error(e.getMessage(), e);
+//
+//                                                basicNackMethod.invoke(rabbitChannel, deliveryTag, false, true);
+//                                                LOGGER.debug("message returned and re-queued");
+//                                            }
+//
+//                                        } catch (Exception e) {
+//                                            LOGGER.error(e.getMessage(), e);
+//                                        }
 
                                         break;
 
@@ -142,7 +142,8 @@ public class MessagingConfig {
                                  * - the state of the message remains as NACK until app restart
                                  * - MessageDeliveryException will be thrown in the message container
                                  */
-                                return null;
+//                                return null;
+                                return message;
                             }
                         });
                 }

@@ -7,7 +7,7 @@ spring:
           output:
             producer:
               # A SpEL expression to determine the routing key to use when publishing messages
-              routing-key-expression: '"test.event.1"'
+              routingKeyExpression: '"test.event.1"'
               # The routing key  to use when publishing messages
               bindingRoutingKey: test.event.1
               # make the channel transactional for each publish, guarantee a message isn't lost
@@ -16,10 +16,27 @@ spring:
             consumer:
               # The routing key with which to bind the queue to the exchange
               bindingRoutingKey: test.event.1
-              # consumer must manually acknowledge message
-              acknowledge-mode: manual
+              # Configure the consumer to manually acknowledge message
+              # avoid using manual ack since the listener container will do that
+              # automatically for you with AUTO ack mode, manual acks is for special
+              # use cases such as deferring acks, or early acking.
+              # During AUTO ack mode, the default behavior is:
+              # - the container will ack the message (and discard it) if the listener exits normally
+              # - the container will reject the message (and requeue it) if the listener throws an exception
+#              acknowledgeMode: manual
               # The maximum number of consumers
               maxConcurrency: 3
+              # dlx/dlq setup
+              autoBindDlq: true
+              # The backoff time to wait between re-deliveries
+              # when the backoff time expired, message from the DLQ are routed back to original queue
+              dlqTtl: 15000
+              dlqDeadLetterExchange:
+              # When maxAttempt = 1 (internal retry disabled) AND requeueRejected = true
+              # any rejected/failed message will be re-queued and retry exhaustively
+              # When DLQ is configured, set requeueRejected = false such that any exception thrown
+              # can cause the rejected/failed message to be routed to DLQ instead of infinite retry
+              requeueRejected: false
       bindings:
         input:
           # Name of the Exchange
@@ -29,20 +46,26 @@ spring:
           # Name of the Queue
           # each application instance will have a dedicated RabbitMQ Consumer instance for its group’s Queue
           group: demo-queue
-          # Disable default binder retry
-          # if not configured, default binder will assume 3 attempts before it considered the retries are exhausted
-          # if set to 1, binder retry will be disabled and message are routed to DLQ right-away when any exception
           consumer:
-            max-attempts: 1
+            # Disable default binder retry
+            # if not configured, default binder will assume 3 attempts before it considered the retries are exhausted
+            # if set to 1, binder internal retry will be disabled and message are routed to DLQ right-away when any exception
+            maxAttempts: 1
             # The number of concurrent consumers to initially start for each listener
             # when ordering of message doesn't matter
-            concurrency: 2
+            concurrency: 1
         output:
           # Name of the Exchange
           destination: demo-exchange
           contentType: application/json
           group: demo-queue
           binder: local_rabbit
+#        error:
+#          # Name of the Exchange for publishing error messages sent to the errorChannel to specific destination at the broker
+#          destination: demo-error-exchange
+#          contentType: text/plain
+#          group: demo-error-queue
+#          binder: local_rabbit
       binders:
         local_rabbit:
           type: rabbit
@@ -55,7 +78,6 @@ spring:
 #                port: 5672
                 username: guest
                 password: guest
-                connection-timeout: 60000
-                acknowledge-mode: manual
+                connectionTimeout: 60000
                 # Requested heartbeat timeout, in seconds; zero for none.
-                requested-heartbeat: 15000
+                requestedHeartbeat: 15000

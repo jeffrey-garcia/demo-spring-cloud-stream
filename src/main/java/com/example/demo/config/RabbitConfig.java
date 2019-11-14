@@ -47,7 +47,7 @@ public class RabbitConfig {
             try {
                 // simulate I/O latency in the processing of message
                 // put a hard-delay less than the pre-configured hystrix timeout otherwise hystrix will break the circuit
-                Thread.sleep(4000);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
             }
 
