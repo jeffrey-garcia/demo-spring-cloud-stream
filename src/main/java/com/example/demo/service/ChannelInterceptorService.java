@@ -36,19 +36,19 @@ public class ChannelInterceptorService {
         return bindingPropertiesMap.keySet();
     }
 
-    public BindingProperties getBinding(String bindingKey) {
-        final BindingProperties bindingProperties = bindingServiceProperties.getBindings().get(bindingKey);
+    public BindingProperties getBinding(String channelName) {
+        final BindingProperties bindingProperties = bindingServiceProperties.getBindings().get(channelName);
         return bindingProperties;
     }
 
-    public BinderProperties getBinder(String bindingKey) {
-        final BindingProperties bindingProperties = bindingServiceProperties.getBindings().get(bindingKey);
+    public BinderProperties getBinder(String channelName) {
+        final BindingProperties bindingProperties = bindingServiceProperties.getBindings().get(channelName);
         if (bindingProperties == null) return null;
 
-        final String binderKey = bindingProperties.getBinder();
-        if (binderKey == null) return null;
+        final String binderName = bindingProperties.getBinder();
+        if (binderName == null) return null;
 
-        final BinderProperties binderProperties = bindingServiceProperties.getBinders().get(binderKey);
+        final BinderProperties binderProperties = bindingServiceProperties.getBinders().get(binderName);
         return binderProperties;
     }
 
@@ -71,10 +71,12 @@ public class ChannelInterceptorService {
             switch (SupportedBinders.valueOf(binderType)) {
                 case rabbit:
                     DefaultChannelInterceptor rabbitBinderInterceptor = new RabbitBinderInterceptor();
+                    // ensure highest execution priority by setting it to the first element in the channel interceptor list
                     channel.addInterceptor(0, rabbitBinderInterceptor);
                     return rabbitBinderInterceptor;
                 case kafka:
                     DefaultChannelInterceptor kafkaBinderInterceptor = new KafkaBinderInterceptor();
+                    // ensure highest execution priority by setting it to the first element in the channel interceptor list
                     channel.addInterceptor(0, kafkaBinderInterceptor);
                     return kafkaBinderInterceptor;
                 default:
