@@ -38,7 +38,7 @@ public class RabbitConfig {
         byte[] bytes = message.getBody();
 
         if ("text/plain".equals(contentType) || "application/json".equals(contentType)) {
-            //TODO: only support plain text in the message body at the moment
+            //TODO: only interceptor plain text in the message body at the moment
             String messageString = new String(bytes, contentEncoding);
             LOGGER.debug("message string: " + messageString);
 

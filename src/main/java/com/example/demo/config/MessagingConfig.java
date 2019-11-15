@@ -2,6 +2,7 @@ package com.example.demo.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import org.springframework.messaging.support.ChannelInterceptor;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -70,6 +72,7 @@ public class MessagingConfig {
 
                     // TODO: add the custom handling to iterate through the binding service properties
                     final BindingProperties bindingProperties = getBinding(beanName);
+
                     // ensure highest execution priority by setting it to
                     // the first element in the channel interceptor list
                     if (bindingProperties != null && beanName.equals("input"))
@@ -85,7 +88,7 @@ public class MessagingConfig {
                                         // at-least once approach for diverting the message to another queue
 //                                        try {
 //                                            Class rabbitChannelClass = Class.forName("com.rabbitmq.client.Channel");
-//                                            Class amqpHeadersClass = Class.forName("org.springframework.amqp.support.AmqpHeaders");
+//                                            Class amqpHeadersClass = Class.forName("org.springframework.amqp.interceptor.AmqpHeaders");
 //
 //                                            Field channelField = amqpHeadersClass.getField("CHANNEL");
 //                                            Field deliveryTagField = amqpHeadersClass.getField("DELIVERY_TAG");
@@ -128,8 +131,9 @@ public class MessagingConfig {
 //                                        } catch (Exception e) {
 //                                            LOGGER.error(e.getMessage(), e);
 //                                        }
-
-                                        break;
+//                                        break;
+                                        throw new AmqpRejectAndDontRequeueException("throw exception while intercepting");
+//                                        throw new RuntimeException("exception while intercepting");
 
                                     case kafka:
                                         // TODO: to be implemented with local Kakfa's docker
@@ -142,8 +146,8 @@ public class MessagingConfig {
                                  * - the state of the message remains as NACK until app restart
                                  * - MessageDeliveryException will be thrown in the message container
                                  */
-//                                return null;
-                                return message;
+                                return null;
+//                                return message;
                             }
                         });
                 }

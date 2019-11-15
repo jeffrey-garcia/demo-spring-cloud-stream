@@ -115,7 +115,7 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- JUnit support for Spring Cloud Stream -->
+		<!-- JUnit interceptor for Spring Cloud Stream -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-stream-test-support</artifactId>
