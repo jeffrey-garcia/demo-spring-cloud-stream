@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.messaging.Sink;
@@ -165,8 +166,6 @@ public class DemoSubscriber {
 ////            throw e;
 //        }
 //    }
-
-
 
     @ServiceActivator(inputChannel = "errorChannel")
     public void onError(ErrorMessage errorMessage) {

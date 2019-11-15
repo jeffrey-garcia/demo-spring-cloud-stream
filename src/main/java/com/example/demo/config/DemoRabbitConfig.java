@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Configuration;
 
 
 @Configuration
-public class RabbitConfig {
-    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitConfig.class);
+public class DemoRabbitConfig {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DemoRabbitConfig.class);
 
     @RabbitListener(queues = "demo-exchange.demo-queue-2")
     public void onMessage(Message message, Channel channel) throws Exception {
