@@ -39,8 +39,8 @@ public class DemoApplication {
 	@Bean
 	public CommandLineRunner commandLineRunner(ApplicationContext ctx) {
 		return (args) -> {
-			// Demonstrate how to override the intercept command with custom handling
-			// apply "deliver at-least-once" approach to diver the message to another queue
+			// Demonstrate how to override the intercept command to integrate with
+			// any custom business logic or application specific handling
 			interceptorService.configureCommand("input", routeToOtherQueueAutoAck);
 		};
 	}
@@ -51,6 +51,7 @@ public class DemoApplication {
 
 		try {
 			// divert the message to another queue for manual follow-up with auto-acknowledgement
+			// apply "deliver at-least-once" approach to diver the message to another queue
 			String exchangeName = bindingProperties.getDestination();
 			String queueName = "demo-queue-2";
 			String routingKey = "test.event.2";
@@ -62,10 +63,17 @@ public class DemoApplication {
 					java.lang.String.class,
 					org.springframework.messaging.Message.class);
 
-			Message<?> reply = (Message<?>) sendAndReceiveMethod.invoke(rabbitMessagingTemplate, exchangeName, routingKey, message);
-			LOGGER.debug("message routed to: {}", queueName);
+			// Crash before sending the message to other queue, the message will be requeue
+			// (no message lost and no duplicate message)
 
-			// Any crash beyonds here (before message acknowledgement) can lead to duplicate message
+			// Crash during the sending of message to other queue, the message will be requeue,
+			// outgoing message is not guaranteed to have arrived the remote queue, there maybe
+			// duplicated message
+			Message<?> reply = (Message<?>) sendAndReceiveMethod.invoke(rabbitMessagingTemplate, exchangeName, routingKey, message);
+
+			// Crash after remote queue acknowledged the receive of message, the message will be requeue,
+			// there will be duplicated message
+			LOGGER.debug("message routed to: {}", queueName);
 
 		} catch (Exception e) {
 			LOGGER.debug("exception occurred, message should be return and re-queue");
@@ -81,8 +89,9 @@ public class DemoApplication {
 
 		try {
 			// divert the message to another queue for manual follow-up with manual-acknowledgement
+			// apply "deliver at-least-once" approach to diver the message to another queue
 			Class rabbitChannelClass = Class.forName("com.rabbitmq.client.Channel");
-			Class amqpHeadersClass = Class.forName("org.springframework.amqp.interceptor.AmqpHeaders");
+			Class amqpHeadersClass = Class.forName("org.springframework.amqp.support.AmqpHeaders");
 
 			Field channelField = amqpHeadersClass.getField("CHANNEL");
 			Field deliveryTagField = amqpHeadersClass.getField("DELIVERY_TAG");
@@ -108,10 +117,17 @@ public class DemoApplication {
 						java.lang.String.class,
 						org.springframework.messaging.Message.class);
 
+				// Crash before sending the message to other queue, the message will be requeue
+				// (no message lost and no duplicate message)
+
+				// Crash during the sending of message to other queue, the message will be requeue,
+				// outgoing message is not guaranteed to have arrived the remote queue, there maybe
+				// duplicated message
 				Message<?> reply = (Message<?>) sendAndReceiveMethod.invoke(rabbitMessagingTemplate, exchangeName, routingKey, message);
 				LOGGER.debug("message routed to: {}", queueName);
 
-				// Any crash beyonds here (before message acknowledgement) can lead to duplicate message
+				// Crash after remote queue acknowledged the receive of message, the message will be requeue,
+				// there will be duplicated message
 				basicNackMethod.invoke(rabbitChannel, deliveryTag, false, false);
 				LOGGER.debug("message acknowledged");
 

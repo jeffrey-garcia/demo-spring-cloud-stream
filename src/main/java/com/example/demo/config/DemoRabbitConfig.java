@@ -5,6 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -43,7 +46,6 @@ public class DemoRabbitConfig {
             LOGGER.debug("message string: " + messageString);
 
             // TODO: add specific implementation based on the routing key
-
             try {
                 // simulate I/O latency in the processing of message
                 // put a hard-delay less than the pre-configured hystrix timeout otherwise hystrix will break the circuit
@@ -75,6 +77,28 @@ public class DemoRabbitConfig {
     Binding bindingTestEvent1(Queue queue, TopicExchange exchange) {
         // bind this queue behind the exchange topic and configure the specific routing key
         return BindingBuilder.bind(queue).to(exchange).with("test.event.2");
+    }
+
+    @Bean
+    SimpleMessageListenerContainer container(
+            @Autowired ConnectionFactory connectionFactory
+    ) {
+        // the queue will be created at run-time when this bean is instantiated
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+        container.setAcknowledgeMode(AcknowledgeMode.MANUAL);
+        container.setConnectionFactory(connectionFactory);
+        container.setQueueNames("demo-exchange.demo-queue-2");
+
+        // Raising the number of concurrent consumers is recommendable
+        // in order to scale the consumption of messages coming in from
+        // a queue.
+        //
+        // However, note that any ordering guarantees are lost once multiple
+        // consumers are registered.
+        // In general, stick with 1 consumer for low-volume queues.
+        container.setConcurrentConsumers(1);
+
+        return container;
     }
 
 }

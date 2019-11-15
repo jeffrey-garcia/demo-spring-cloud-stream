@@ -52,7 +52,10 @@ spring:
             # if set to 1, binder internal retry will be disabled and message are routed to DLQ right-away when any exception
             maxAttempts: 1
             # The number of concurrent consumers to initially start for each listener
-            # when ordering of message doesn't matter
+            # raise it to scale the consumption of messages coming in from a queue.
+            # however, note that any ordering guarantees are lost once multiple
+            # consumers are registered.
+            # In general, stick with 1 consumer for low-volume queues.
             concurrency: 1
         output:
           # Name of the Exchange
