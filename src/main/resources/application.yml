@@ -31,6 +31,8 @@ spring:
               # The backoff time to wait between re-deliveries
               # when the backoff time expired, message from the DLQ are routed back to original queue
               dlqTtl: 15000
+              # The dlqDeadLetterExchange property is specified with no value,
+              # which means route expired messages to the default exchange DLX
               dlqDeadLetterExchange:
               # When maxAttempt = 1 (internal retry disabled) AND requeueRejected = true
               # any rejected/failed message will be re-queued and retry exhaustively
@@ -63,12 +65,6 @@ spring:
           contentType: application/json
           group: demo-queue
           binder: local_rabbit
-#        error:
-#          # Name of the Exchange for publishing error messages sent to the errorChannel to specific destination at the broker
-#          destination: demo-error-exchange
-#          contentType: text/plain
-#          group: demo-error-queue
-#          binder: local_rabbit
       binders:
         local_rabbit:
           type: rabbit
