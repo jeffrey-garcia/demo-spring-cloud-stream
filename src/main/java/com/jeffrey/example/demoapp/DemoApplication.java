@@ -1,6 +1,6 @@
 package com.jeffrey.example.demoapp;
 
-import com.jeffrey.example.demolib.aop.EnableChannelInterceptor;
+import com.jeffrey.example.demolib.annotation.EnableChannelInterceptor;
 import com.jeffrey.example.demolib.command.ChannelInterceptCommand;
 import com.jeffrey.example.demolib.service.ChannelInterceptorService;
 import org.slf4j.Logger;

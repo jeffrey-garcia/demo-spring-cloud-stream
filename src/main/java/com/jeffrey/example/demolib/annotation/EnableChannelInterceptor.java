@@ -1,4 +1,4 @@
-package com.jeffrey.example.demolib.aop;
+package com.jeffrey.example.demolib.annotation;
 
 import com.jeffrey.example.demolib.util.EnableChannelInterceptorImportSelector;
 import org.springframework.context.annotation.Import;

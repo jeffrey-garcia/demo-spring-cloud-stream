@@ -1,6 +1,6 @@
 package com.jeffrey.example.demolib.util;
 
-import com.jeffrey.example.demolib.aop.EnableChannelInterceptor;
+import com.jeffrey.example.demolib.annotation.EnableChannelInterceptor;
 import com.jeffrey.example.demolib.config.MessageChannelConfig;
 import com.jeffrey.example.demolib.service.ChannelInterceptorService;
 import org.springframework.cloud.commons.util.SpringFactoryImportSelector;
