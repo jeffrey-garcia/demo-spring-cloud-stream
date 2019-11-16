@@ -20,7 +20,8 @@ A demo project of highly available message application with Spring-Cloud-Stream 
     - [Allow Remote Access to Management UI](#rabbitmq_mgmt_ui_remote_access)
     - [Allow Remote Access using AMQP client](#amqp_remote_access)
     - [Setup RabbitMQ cluster in local machine](#setup_rabbitmq_cluster)
-
+- [Build, Run & Test](#build_run_test)
+- [References](#references)
 <br/>
 
 ### <a name="distributed_system"></a> The curse of Distributed System
@@ -251,3 +252,57 @@ rabbitmq-server
     rabbitmqctl -n new_node@localhost join_cluster old_node@localhost
     rabbitmqctl -n new_node@localhost start_app
     ```
+<br/>
+
+### <a name="build_run_test"></a>Build, Run & Test
+#### Build locally (will run all tests)
+- Maven Wrapper
+    ```sh
+    ./mvnw clean package -Plocal
+    ```
+#### Build locally (exclude any tests)
+- Maven Wrapper
+    ```sh
+    ./mvnw clean package -Plocal -DskipTests
+    ```
+#### Running app standalone locally
+- Maven Wrapper
+    ```sh
+    ./mvnw clean -Plocal spring-boot:run 
+    ```
+#### Unit-Testing (runs all junit-test *.Test.java)
+- Maven Wrapper 
+    ```sh
+    ./mvnw clean test 
+    ```
+#### Integration Testing (runs all unit-tests and spring-boot test *IT.java)
+- Maven Wrapper 
+    ```sh
+    ./mvnw clean verify
+    ```        
+<br/>    
+    
+### <a name="references"></a> References
+- Rabbit MQ
+    - [RabbitMQ reliability guide](https://www.rabbitmq.com/reliability.html)
+    - [RabbitMQ publisher confirms](https://www.rabbitmq.com/confirms.html#publisher-confirms)
+    - [RabbitMQ best practices for high-availability](https://www.cloudamqp.com/blog/2018-01-09-part3-rabbitmq-best-practice-for-high-availability.html)
+    - [RabbitMQ common mistakes](https://www.cloudamqp.com/blog/2018-01-19-part4-rabbitmq-13-common-errors.html)
+    
+- Spring
+    - [Spring AMQP resilience - recovering from errors and brokers failure](https://docs.spring.io/spring-amqp/docs/current/reference/html/#_resilience_recovering_from_errors_and_broker_failures)
+    - [Spring Integration overview](https://docs.spring.io/spring-integration/reference/html/overview.html#overview)    
+    - [Spring Integration - channel interceptor](https://docs.spring.io/spring-integration/reference/html/core.html#channel-interceptors)
+    - [Spring Cloud Stream - error handling](https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/#spring-cloud-stream-overview-error-handling)
+    - [Spring Cloud Stream Rabbit Binder - dead letter queue](https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/#rabbit-dlq-processing)
+    - [Blog - Kafka Streams and Spring Cloud Streams](https://spring.io/blog/2018/04/19/kafka-streams-and-spring-cloud-stream)
+    
+- Stackoverflow
+    - [Spring Cloud Stream - publisher confirm](https://stackoverflow.com/a/43236682/12364493)
+    - [Spring Cloud Stream - transaction](https://stackoverflow.com/a/50373468/12364493)
+    - [Spring Cloud Stream - intercept kafka stream binder](https://stackoverflow.com/a/56399184/12364493)
+    - [Spring Cloud Stream - adding custom interceptor to message channel](https://stackoverflow.com/a/41468723/12364493)
+    - [Clarify Usage - autoBindDlq and republishToDlq](https://github.com/spring-cloud/spring-cloud-stream-binder-rabbit/issues/4#issuecomment-243793980)
+    - [Spring AMQP - how to use ack or nack](https://github.com/spring-cloud/spring-cloud-stream-binder-rabbit/issues/4#issuecomment-243793980)
+    - [Spring AMQP - error handling and message retry](https://stackoverflow.com/a/28358510/12364493)        
+<br/>    
