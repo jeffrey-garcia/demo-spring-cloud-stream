@@ -1,6 +1,6 @@
-package com.example.lib.config;
+package com.jeffrey.example.demolib.config;
 
-import com.example.lib.service.ChannelInterceptorService;
+import com.jeffrey.example.demolib.service.ChannelInterceptorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -30,7 +30,7 @@ public class MessageChannelConfig {
                 if (bean instanceof AbstractMessageChannel) {
                     AbstractMessageChannel abstractMessageChannel = (AbstractMessageChannel)bean;
 
-                    // TODO: refers to app's configuration for message channel that should be intercepted
+                    // TODO: refers to demoapp's configuration for message channel that should be intercepted
                     if (beanName.equals("input")) {
                         channelInterceptorService.configureInterceptor(abstractMessageChannel);
                     }

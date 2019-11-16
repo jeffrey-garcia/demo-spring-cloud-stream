@@ -1,6 +1,6 @@
-package com.example.demo.controller;
+package com.jeffrey.example.demoapp.controller;
 
-import com.example.demo.bindings.DemoPublisher;
+import com.jeffrey.example.demoapp.bindings.DemoPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -34,7 +34,7 @@ public class DemoController {
     @GetMapping("/test2")
     public @ResponseBody ResponseEntity test2() {
         // handle the publish of message
-        rabbitTemplate.convertAndSend("demo-exchange","test.event.2", "testing 2");
+        rabbitTemplate.convertAndSend("demoapp-exchange","test.event.2", "testing 2");
         return ResponseEntity.accepted().build();
     }
 

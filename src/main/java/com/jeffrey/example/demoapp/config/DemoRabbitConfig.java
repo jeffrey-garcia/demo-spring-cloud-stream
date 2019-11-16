@@ -1,4 +1,4 @@
-package com.example.demo.config;
+package com.jeffrey.example.demoapp.config;
 
 import com.rabbitmq.client.Channel;
 import org.slf4j.Logger;
@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
 public class DemoRabbitConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(DemoRabbitConfig.class);
 
-    @RabbitListener(queues = "demo-exchange.demo-queue-2")
+    @RabbitListener(queues = "demoapp-exchange.demoapp-queue-2")
     public void onMessage(Message message, Channel channel) throws Exception {
         // handle the consuming of message
         LOGGER.debug("received message from queue-2: {}", message);
@@ -66,12 +66,12 @@ public class DemoRabbitConfig {
     @Bean
     Queue queue() {
         // durable MUST be true otherwise the queue (and everything in it) will be deleted when message broker restart
-        return new Queue("demo-exchange.demo-queue-2");
+        return new Queue("demoapp-exchange.demoapp-queue-2");
     }
 
     @Bean
     TopicExchange exchange() {
-        return new TopicExchange("demo-exchange");
+        return new TopicExchange("demoapp-exchange");
     }
 
     @Bean
@@ -88,7 +88,7 @@ public class DemoRabbitConfig {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setAcknowledgeMode(AcknowledgeMode.MANUAL);
         container.setConnectionFactory(connectionFactory);
-        container.setQueueNames("demo-exchange.demo-queue-2");
+        container.setQueueNames("demoapp-exchange.demoapp-queue-2");
 
         // Raising the number of concurrent consumers is recommendable
         // in order to scale the consumption of messages coming in from

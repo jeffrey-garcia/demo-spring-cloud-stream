@@ -42,12 +42,12 @@ spring:
       bindings:
         input:
           # Name of the Exchange
-          destination: demo-exchange
+          destination: demoapp-exchange
           contentType: application/json
           binder: local_rabbit
           # Name of the Queue
           # each application instance will have a dedicated RabbitMQ Consumer instance for its group’s Queue
-          group: demo-queue
+          group: demoapp-queue
           consumer:
             # Disable default binder retry
             # if not configured, default binder will assume 3 attempts before it considered the retries are exhausted
@@ -61,9 +61,9 @@ spring:
             concurrency: 1
         output:
           # Name of the Exchange
-          destination: demo-exchange
+          destination: demoapp-exchange
           contentType: application/json
-          group: demo-queue
+          group: demoapp-queue
           binder: local_rabbit
       binders:
         local_rabbit:

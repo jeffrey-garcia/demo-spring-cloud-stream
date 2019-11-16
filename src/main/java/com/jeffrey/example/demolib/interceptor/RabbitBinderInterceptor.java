@@ -1,4 +1,4 @@
-package com.example.lib.interceptor;
+package com.jeffrey.example.demolib.interceptor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +18,7 @@ public class RabbitBinderInterceptor extends DefaultChannelInterceptor {
                     // once the dlq backoff time expired, the message is automatically put back to original queue
 
                     // use reflection here to ensure package is lightweight and agnostic to actual binder implementation
-                    // is the accountability of the app developer to wire Rabbit/AMQP specific dependencies in the app's project classpath
+                    // is the accountability of the demoapp developer to wire Rabbit/AMQP specific dependencies in the demoapp's project classpath
                     Class amqpRejectAndDontRequeueException = Class.forName("org.springframework.amqp.AmqpRejectAndDontRequeueException");
                     Constructor constructor = amqpRejectAndDontRequeueException.getConstructor(String.class);
                     RuntimeException exception = (RuntimeException) constructor.newInstance("intercept rabbit binder!");
@@ -26,7 +26,7 @@ public class RabbitBinderInterceptor extends DefaultChannelInterceptor {
 
                 } else {
                     // return null if no DLQ is configured
-                    // the state of the message remains as NACK until app restart
+                    // the state of the message remains as NACK until demoapp restart
                     // MessageDeliveryException will be thrown in the message container
                     return null;
                 }
