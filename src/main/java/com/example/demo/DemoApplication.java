@@ -1,7 +1,8 @@
 package com.example.demo;
 
-import com.example.demo.command.ChannelInterceptCommand;
-import com.example.demo.service.ChannelInterceptorService;
+import com.example.lib.aop.EnableChannelInterceptor;
+import com.example.lib.command.ChannelInterceptCommand;
+import com.example.lib.service.ChannelInterceptorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -20,6 +21,7 @@ import org.springframework.messaging.Message;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
+@EnableChannelInterceptor
 @EnableDiscoveryClient
 @SpringBootApplication
 public class DemoApplication {
@@ -37,7 +39,7 @@ public class DemoApplication {
 	ChannelInterceptorService interceptorService;
 
 	@Bean
-	public CommandLineRunner commandLineRunner(ApplicationContext ctx) {
+	public CommandLineRunner commandLineRunner(ApplicationContext applicationContext) {
 		return (args) -> {
 			// Demonstrate how to override the intercept command to integrate with
 			// any custom business logic or application specific handling
@@ -52,6 +54,7 @@ public class DemoApplication {
 		try {
 			// divert the message to another queue for manual follow-up with auto-acknowledgement
 			// apply "deliver at-least-once" approach to diver the message to another queue
+			// without a DLQ
 			String exchangeName = bindingProperties.getDestination();
 			String queueName = "demo-queue-2";
 			String routingKey = "test.event.2";
@@ -90,6 +93,7 @@ public class DemoApplication {
 		try {
 			// divert the message to another queue for manual follow-up with manual-acknowledgement
 			// apply "deliver at-least-once" approach to diver the message to another queue
+			// without a DLQ
 			Class rabbitChannelClass = Class.forName("com.rabbitmq.client.Channel");
 			Class amqpHeadersClass = Class.forName("org.springframework.amqp.support.AmqpHeaders");
 

@@ -53,9 +53,10 @@ public class DemoRabbitConfig {
             } catch (InterruptedException e) {
             }
 
-            LOGGER.info("finish processing message tag: {}, proceed to acknowledge", deliveryTag);
+            LOGGER.debug("finish processing message tag: {}, proceed to acknowledge", deliveryTag);
             // acknowledge message is processed and can be removed from queue
             channel.basicAck(deliveryTag, false);
+            LOGGER.debug("message acknowledged");
 
         } else {
             throw new RuntimeException("un-supported content type: " + contentType);

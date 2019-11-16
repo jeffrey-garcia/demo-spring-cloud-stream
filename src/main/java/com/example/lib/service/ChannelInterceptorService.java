@@ -1,11 +1,12 @@
-package com.example.demo.service;
+package com.example.lib.service;
 
-import com.example.demo.command.ChannelInterceptCommand;
-import com.example.demo.interceptor.DefaultChannelInterceptor;
-import com.example.demo.interceptor.KafkaBinderInterceptor;
-import com.example.demo.interceptor.RabbitBinderInterceptor;
+import com.example.lib.command.ChannelInterceptCommand;
+import com.example.lib.interceptor.DefaultChannelInterceptor;
+import com.example.lib.interceptor.KafkaBinderInterceptor;
+import com.example.lib.interceptor.RabbitBinderInterceptor;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.stream.config.BinderProperties;
 import org.springframework.cloud.stream.config.BindingProperties;
 import org.springframework.cloud.stream.config.BindingServiceProperties;
@@ -18,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Service
+@Qualifier("channelInterceptorService")
 public class ChannelInterceptorService {
 
     private enum SupportedBinders {

@@ -1,6 +1,6 @@
-package com.example.demo.interceptor;
+package com.example.lib.interceptor;
 
-import com.example.demo.command.ChannelInterceptCommand;
+import com.example.lib.command.ChannelInterceptCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
