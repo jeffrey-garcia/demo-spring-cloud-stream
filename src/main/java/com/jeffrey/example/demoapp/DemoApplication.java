@@ -21,8 +21,8 @@ import org.springframework.messaging.Message;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-@EnableChannelInterceptor(useDefault = false)
-//@EnableChannelInterceptor
+//@EnableChannelInterceptor(useDefault = false)
+@EnableChannelInterceptor
 @EnableDiscoveryClient
 @SpringBootApplication
 public class DemoApplication {
@@ -44,7 +44,7 @@ public class DemoApplication {
 		return (args) -> {
 			// Demonstrate how to override the intercept command to integrate with
 			// any custom business logic or application specific handling
-			interceptorService.configureCommand("input", routeToOtherQueueAutoAck);
+//			interceptorService.configureCommand("input", routeToOtherQueueAutoAck);
 		};
 	}
 
