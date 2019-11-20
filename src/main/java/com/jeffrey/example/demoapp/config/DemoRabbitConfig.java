@@ -1,67 +1,21 @@
 package com.jeffrey.example.demoapp.config;
 
-import com.rabbitmq.client.Channel;
+import com.jeffrey.example.demoapp.receiver.DemoRabbitReceiver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.*;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 
 @Configuration
 public class DemoRabbitConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(DemoRabbitConfig.class);
-
-    @RabbitListener(queues = "demoapp-exchange.demoapp-queue-2")
-    public void onMessage(Message message, Channel channel) throws Exception {
-        // handle the consuming of message
-        LOGGER.debug("received message from queue-2: {}", message);
-
-        LOGGER.debug("Received <" + message + ">");
-
-        String exchangeTopic = message.getMessageProperties().getReceivedExchange();
-        LOGGER.debug("Exchange: " + exchangeTopic);
-
-        String queue = message.getMessageProperties().getConsumerQueue();
-        LOGGER.debug("Queue: " + queue);
-
-        String routingKey = message.getMessageProperties().getReceivedRoutingKey();
-        LOGGER.debug("Routing Key: " + routingKey);
-
-        long deliveryTag = message.getMessageProperties().getDeliveryTag();
-        LOGGER.debug("Delivery Tag: " + deliveryTag);
-
-        String contentType = message.getMessageProperties().getContentType();
-        String contentEncoding = message.getMessageProperties().getContentEncoding();
-        contentEncoding = contentEncoding == null ? "UTF-8" : contentEncoding;
-        byte[] bytes = message.getBody();
-
-        if ("text/plain".equals(contentType) || "application/json".equals(contentType)) {
-            //TODO: only interceptor plain text in the message body at the moment
-            String messageString = new String(bytes, contentEncoding);
-            LOGGER.debug("message string: " + messageString);
-
-            // TODO: add specific implementation based on the routing key
-            try {
-                // simulate I/O latency in the processing of message
-                // put a hard-delay less than the pre-configured hystrix timeout otherwise hystrix will break the circuit
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-            }
-
-            LOGGER.debug("finish processing message tag: {}, proceed to acknowledge", deliveryTag);
-            // acknowledge message is processed and can be removed from queue
-            channel.basicAck(deliveryTag, false);
-            LOGGER.debug("message acknowledged");
-
-        } else {
-            throw new RuntimeException("un-supported content type: " + contentType);
-        }
-    }
 
     @Bean
     Queue queue() {
@@ -82,13 +36,15 @@ public class DemoRabbitConfig {
 
     @Bean
     SimpleMessageListenerContainer container(
-            @Autowired ConnectionFactory connectionFactory
+            @Autowired DemoRabbitReceiver rabbitReceiver,
+            @Autowired CachingConnectionFactory connectionFactory
     ) {
         // the queue will be created at run-time when this bean is instantiated
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setAcknowledgeMode(AcknowledgeMode.MANUAL);
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames("demoapp-exchange.demoapp-queue-2");
+        container.setMessageListener(rabbitReceiver);
 
         // Raising the number of concurrent consumers is recommendable
         // in order to scale the consumption of messages coming in from
@@ -99,7 +55,47 @@ public class DemoRabbitConfig {
         // In general, stick with 1 consumer for low-volume queues.
         container.setConcurrentConsumers(1);
 
+        connectionFactory.setPublisherConfirms(true);
+        connectionFactory.setPublisherReturns(true);
+
         return container;
+    }
+
+    @Bean
+    @Qualifier("rabbitTemplate")
+    public RabbitTemplate demoRabbitTemplate(
+            @Autowired
+            SimpleMessageListenerContainer container
+    ) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate();
+        rabbitTemplate.setConnectionFactory(container.getConnectionFactory());
+//        rabbitTemplate.setMandatory(true);
+
+        if (container.getConnectionFactory().isPublisherConfirms()) {
+            rabbitTemplate.setConfirmCallback(new RabbitTemplate.ConfirmCallback() {
+                @Override
+                public void confirm(CorrelationData correlationData, boolean ack, String cause) {
+                    LOGGER.debug("correlationData: {}", correlationData);
+                    LOGGER.debug("ack: {}", ack);
+                    LOGGER.debug("cause: {}", cause);
+                }
+            });
+        }
+
+        if (container.getConnectionFactory().isPublisherReturns()) {
+            rabbitTemplate.setReturnCallback(new RabbitTemplate.ReturnCallback() {
+                @Override
+                public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
+                    LOGGER.debug("message: {}", message);
+                    LOGGER.debug("replyCode: {}", replyCode);
+                    LOGGER.debug("replyText: {}", replyText);
+                    LOGGER.debug("exchange: {}", exchange);
+                    LOGGER.debug("routingKey: {}", routingKey);
+                }
+            });
+        }
+
+        return rabbitTemplate;
     }
 
 }
