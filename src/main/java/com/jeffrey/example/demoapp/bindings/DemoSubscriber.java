@@ -6,6 +6,9 @@ import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.messaging.Sink;
 import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageDeliveryException;
+import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.support.ErrorMessage;
@@ -169,8 +172,15 @@ public class DemoSubscriber {
         /**
          * Global error messages interceptor
          */
-        // capture any delivery error
-        LOGGER.debug("onError: headers:{}, payload:{}", errorMessage.getHeaders(), errorMessage.getPayload().getMessage());
+        MessagingException exception = (MessagingException) errorMessage.getPayload();
+        Message message = exception.getFailedMessage();
+        LOGGER.debug("original message: {}", new String((byte[])message.getPayload()));
+
+        if (exception instanceof MessageDeliveryException) {
+            MessageDeliveryException deliveryException = (MessageDeliveryException) exception;
+            String errorReason = deliveryException.getMessage();
+            LOGGER.debug("error reason: {}", errorReason);
+        }
     }
 
 }

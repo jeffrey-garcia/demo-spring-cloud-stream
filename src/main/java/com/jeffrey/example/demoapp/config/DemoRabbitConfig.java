@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
-import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,29 +68,26 @@ public class DemoRabbitConfig {
     ) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate();
         rabbitTemplate.setConnectionFactory(container.getConnectionFactory());
-//        rabbitTemplate.setMandatory(true);
+
+        // Set the mandatory flag when sending messages
+        // only applies if a returnCallback had been provided.
+        rabbitTemplate.setMandatory(true);
 
         if (container.getConnectionFactory().isPublisherConfirms()) {
-            rabbitTemplate.setConfirmCallback(new RabbitTemplate.ConfirmCallback() {
-                @Override
-                public void confirm(CorrelationData correlationData, boolean ack, String cause) {
-                    LOGGER.debug("correlationData: {}", correlationData);
-                    LOGGER.debug("ack: {}", ack);
-                    LOGGER.debug("cause: {}", cause);
-                }
+            rabbitTemplate.setConfirmCallback((correlationData, ack, cause) -> {
+                LOGGER.debug("correlationData: {}", correlationData);
+                LOGGER.debug("ack: {}", ack);
+                LOGGER.debug("cause: {}", cause);
             });
         }
 
         if (container.getConnectionFactory().isPublisherReturns()) {
-            rabbitTemplate.setReturnCallback(new RabbitTemplate.ReturnCallback() {
-                @Override
-                public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
-                    LOGGER.debug("message: {}", message);
-                    LOGGER.debug("replyCode: {}", replyCode);
-                    LOGGER.debug("replyText: {}", replyText);
-                    LOGGER.debug("exchange: {}", exchange);
-                    LOGGER.debug("routingKey: {}", routingKey);
-                }
+            rabbitTemplate.setReturnCallback((message, replyCode, replyText, exchange, routingKey) -> {
+                LOGGER.debug("message: {}", message);
+                LOGGER.debug("replyCode: {}", replyCode);
+                LOGGER.debug("replyText: {}", replyText);
+                LOGGER.debug("exchange: {}", exchange);
+                LOGGER.debug("routingKey: {}", routingKey);
             });
         }
 

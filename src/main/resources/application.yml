@@ -10,16 +10,21 @@ spring:
               routingKeyExpression: '"test.event.1"'
               # The routing key  to use when publishing messages
               bindingRoutingKey: test.event.1
-              # make the channel transactional for each publish, guarantee a message isn't lost
-              transacted: true
+              # Make the channel transactional for each publish (not recommended)
+              # - transactions become unnecessarily heavyweight and decrease throughput by a factor of 250
+              # - can only guarantee message is received by rabbitmq, makes no guarantee that message is
+              #   successfully routed to a queue or written to disk
+              # - any errors will be reported back to the client asynchronously
+#              transacted: true
           input:
             consumer:
               # The routing key with which to bind the queue to the exchange
               bindingRoutingKey: test.event.1
-              # Configure the consumer to manually acknowledge message
+              # Configure the consumer to manually acknowledge message (not recommended)
               # avoid using manual ack since the listener container will do that
               # automatically for you with AUTO ack mode, manual acks is for special
               # use cases such as deferring acks, or early acking.
+              #
               # During AUTO ack mode, the default behavior is:
               # - the container will ack the message (and discard it) if the listener exits normally
               # - the container will reject the message (and requeue it) if the listener throws an exception
@@ -65,18 +70,30 @@ spring:
           contentType: application/json
           group: demoapp-queue
           binder: local_rabbit
+          # Publisher failures are sent to an error channel for the destination,
+          # works only when publisherConfirms and publisherReturns are both true
+          producer:
+            errorChannelEnabled: true
       binders:
         local_rabbit:
           type: rabbit
           environment:
             spring:
               rabbitmq:
-                # connect to RabbitMQ cluster and fail-over at the client-side regardless a HA-proxy
+                # Connect to RabbitMQ cluster and fail-over at the client-side regardless a HA-proxy
                 addresses: localhost:5674,localhost:5672
-#                host: localhost
-#                port: 5672
                 username: guest
                 password: guest
                 connectionTimeout: 60000
                 # Requested heartbeat timeout, in seconds; zero for none.
                 requestedHeartbeat: 15000
+                # Configure the connection factory to provide acknowledgement to publishers
+                # - guarantee message is not lost during sending to broker cause
+                # - if the broker is unable to store a message it will return a nack asynchronously
+                #   and refuses responsibility of it, the client could choose to apply retry strategy
+                #   or report the failure to upstream
+                publisherConfirms: true
+                publisherReturns: true
+
+
+
