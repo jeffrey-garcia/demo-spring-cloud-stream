@@ -16,8 +16,8 @@ import org.springframework.messaging.support.ErrorMessage;
 import java.util.Map;
 
 @EnableBinding({Sink.class})
-public class DemoSubscriber {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DemoSubscriber.class);
+public class DemoConsumer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DemoConsumer.class);
 
 //    /**
 //     * If DLQ is not configured AND acknowledgement mode is AUTO

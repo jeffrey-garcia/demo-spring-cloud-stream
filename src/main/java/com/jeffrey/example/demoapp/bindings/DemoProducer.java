@@ -14,8 +14,8 @@ import org.springframework.messaging.support.ErrorMessage;
 import org.springframework.messaging.support.MessageBuilder;
 
 @EnableBinding(Source.class)
-public class DemoPublisher {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DemoPublisher.class);
+public class DemoProducer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DemoProducer.class);
 
     @Autowired
     Source source;

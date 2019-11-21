@@ -1,6 +1,6 @@
 package com.jeffrey.example.demoapp.controller;
 
-import com.jeffrey.example.demoapp.bindings.DemoPublisher;
+import com.jeffrey.example.demoapp.bindings.DemoProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -17,7 +17,7 @@ public class DemoController {
     private static final Logger LOGGER = LoggerFactory.getLogger(DemoController.class);
 
     @Autowired
-    DemoPublisher publisher;
+    DemoProducer publisher;
 
     @GetMapping("/test1")
     public @ResponseBody ResponseEntity test1() {
