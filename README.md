@@ -297,12 +297,15 @@ rabbitmq-server
     - [Spring Cloud Stream Rabbit Binder - dead letter queue](https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/#rabbit-dlq-processing)
     - [Blog - Kafka Streams and Spring Cloud Streams](https://spring.io/blog/2018/04/19/kafka-streams-and-spring-cloud-stream)
     
-- Stackoverflow
+- Stackoverflow/GitHub issue
     - [Spring Cloud Stream - publisher confirm](https://stackoverflow.com/a/43236682/12364493)
+    - [Spring Cloud Stream - handle RabbitMQ's memory or disk alarms](https://stackoverflow.com/a/54698047/12364493)
+    - [Spring Cloud Stream - MessageHandlingException message in error channel](https://stackoverflow.com/a/49438487/12364493)
     - [Spring Cloud Stream - transaction](https://stackoverflow.com/a/50373468/12364493)
     - [Spring Cloud Stream - intercept kafka stream binder](https://stackoverflow.com/a/56399184/12364493)
     - [Spring Cloud Stream - adding custom interceptor to message channel](https://stackoverflow.com/a/41468723/12364493)
     - [Clarify Usage - autoBindDlq and republishToDlq](https://github.com/spring-cloud/spring-cloud-stream-binder-rabbit/issues/4#issuecomment-243793980)
     - [Spring AMQP - how to use ack or nack](https://github.com/spring-cloud/spring-cloud-stream-binder-rabbit/issues/4#issuecomment-243793980)
-    - [Spring AMQP - error handling and message retry](https://stackoverflow.com/a/28358510/12364493)        
+    - [Spring AMQP - error handling and message retry](https://stackoverflow.com/a/28358510/12364493)
+            
 <br/>    
