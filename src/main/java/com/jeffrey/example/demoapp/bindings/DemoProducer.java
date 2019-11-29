@@ -48,6 +48,8 @@ public class DemoProducer {
          * message in the failedMessage property and the exception in the cause.
          */
         MessagingException exception = (MessagingException) errorMessage.getPayload();
+
+        // retrieve the original message for subsequent retry/error handling
         Message message = exception.getFailedMessage();
         LOGGER.debug("original message: {}", new String((byte[])message.getPayload()));
 
