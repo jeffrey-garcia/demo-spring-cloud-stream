@@ -1,15 +1,19 @@
 package com.jeffrey.example.demoapp.bindings;
 
+import com.jeffrey.example.demoapp.service.EventStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.messaging.Sink;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageDeliveryException;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.support.ErrorMessage;
 
@@ -18,6 +22,9 @@ import java.util.Map;
 @EnableBinding({Sink.class})
 public class DemoConsumer {
     private static final Logger LOGGER = LoggerFactory.getLogger(DemoConsumer.class);
+
+    @Autowired
+    EventStoreService eventStoreService;
 
 //    /**
 //     * If DLQ is not configured AND acknowledgement mode is AUTO
@@ -97,7 +104,8 @@ public class DemoConsumer {
     @StreamListener(Sink.INPUT)
     public void listen(
             @Payload String messageString,
-            @Header(name = "x-death", required = false) Map<?,?> death
+            @Header(name = "x-death", required = false) Map<?,?> death,
+            @Headers MessageHeaders headers
     ) throws Exception {
         LOGGER.debug("message received from: {}, payload: {}", Sink.INPUT, messageString);
 
@@ -110,6 +118,8 @@ public class DemoConsumer {
 
             // simulate any un-expected exception thrown in the business logic
             // throw new Exception("dummy exception!");
+
+            eventStoreService.updateEventAsConsumed(headers.get("eventId", String.class));
 
         } catch (Exception e) {
             /**

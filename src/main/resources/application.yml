@@ -16,6 +16,10 @@ spring:
               #   successfully routed to a queue or written to disk
               # - any errors will be reported back to the client asynchronously
 #              transacted: true
+              # Channel to which to send positive delivery acknowledgments
+              # - errorChannelEnabled should be true
+              # - connection factory must be configured to enable publisher confirms
+              confirmAckChannel: publisher-confirm
           input:
             consumer:
               # The routing key with which to bind the queue to the exchange

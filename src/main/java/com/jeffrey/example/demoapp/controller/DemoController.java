@@ -1,8 +1,11 @@
 package com.jeffrey.example.demoapp.controller;
 
 import com.jeffrey.example.demoapp.bindings.DemoProducer;
+import com.jeffrey.example.demoapp.service.EventStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,17 +15,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 public class DemoController {
     private static final Logger LOGGER = LoggerFactory.getLogger(DemoController.class);
 
     @Autowired
-    DemoProducer publisher;
+    DemoProducer producer;
 
     @GetMapping("/test1")
     public @ResponseBody ResponseEntity test1() {
         try {
-            publisher.sendMessage();
+            producer.sendMessage();
             return ResponseEntity.accepted().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());

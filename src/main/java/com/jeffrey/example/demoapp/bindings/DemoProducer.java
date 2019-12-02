@@ -1,5 +1,7 @@
 package com.jeffrey.example.demoapp.bindings;
 
+import com.jeffrey.example.demoapp.entity.DomainEvent;
+import com.jeffrey.example.demoapp.service.EventStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,9 +11,12 @@ import org.springframework.integration.amqp.support.ReturnedAmqpMessageException
 import org.springframework.integration.annotation.Publisher;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.support.ErrorMessage;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.messaging.support.MessageHeaderAccessor;
+
 
 @EnableBinding(Source.class)
 public class DemoProducer {
@@ -20,12 +25,23 @@ public class DemoProducer {
     @Autowired
     Source source;
 
+    @Autowired
+    EventStoreService eventStoreService;
+
     @Publisher(channel = Source.OUTPUT)
     public void sendMessage() throws Exception {
         Message message = message("testing 1");
 
         try {
-            boolean result = source.output().send(message);
+            DomainEvent event = eventStoreService.createEvent(message);
+
+            MessageHeaderAccessor accessor = MessageHeaderAccessor.getMutableAccessor(message);
+            accessor.setHeaderIfAbsent("eventId", event.getId());
+            MessageHeaders messageHeaders = accessor.getMessageHeaders();
+
+            Message _message = MessageBuilder.fromMessage(message).copyHeaders(messageHeaders).build();
+
+            boolean result = source.output().send(_message);
             LOGGER.debug("send result: {}", result);
         } catch (Exception e) {
             // can only handle typical network exception
@@ -62,7 +78,18 @@ public class DemoProducer {
             int errorCode = amqpMessageException.getReplyCode();
             LOGGER.debug("error reason: {}, error code: {}", errorReason, errorCode);
         }
-
     }
 
+    @ServiceActivator(inputChannel = "publisher-confirm")
+    public void onPublisherConfirm(Message message) {
+        /**
+         * Global publisher confirm channel interceptor
+         */
+        Boolean publisherConfirm = message.getHeaders().get("amqp_publishConfirm", Boolean.class);
+        if (publisherConfirm != null && publisherConfirm) {
+            eventStoreService.updateEventAsProduced(message.getHeaders().get("eventId", String.class));
+        }
+
+        LOGGER.debug("{}", message.getPayload());
+    }
 }
