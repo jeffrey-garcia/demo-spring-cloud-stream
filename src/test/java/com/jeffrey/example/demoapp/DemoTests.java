@@ -10,8 +10,10 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 
 import java.io.*;
-import java.time.*;
-import java.util.HashMap;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Map;
 
 public class DemoTests {
@@ -69,6 +71,14 @@ public class DemoTests {
         org.springframework.amqp.core.Message amqpMessage = new org.springframework.amqp.core.Message("testing 2".getBytes(), new MessageProperties());
         Map<String,Object> amqpHeaders = amqpMessage.getMessageProperties().getHeaders();
         Assert.assertTrue(true);
+    }
+
+    @Test
+    public void compareLocalDateTime() throws InterruptedException {
+        LocalDateTime localDateTime1 = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
+        Thread.sleep(1000);
+        LocalDateTime localDateTime2 = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
+        Assert.assertTrue(localDateTime2.isAfter(localDateTime1));
     }
 
 }

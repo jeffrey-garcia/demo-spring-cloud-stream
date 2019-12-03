@@ -41,21 +41,6 @@ public class DemoApplication {
 	}
 
 	@Autowired
-	MongoTemplate mongoTemplate;
-
-	@Autowired
-	MongoMappingContext mongoMappingContext;
-
-	@EventListener(ApplicationReadyEvent.class)
-	public void initIndicesAfterStartup() {
-		// Although index creation via annotations comes in handy for many scenarios
-		// consider taking over more control by setting up indices manually via IndexOperations.
-		IndexOperations indexOps = mongoTemplate.indexOps(DomainEvent.class);
-		IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
-		resolver.resolveIndexFor(DomainEvent.class).forEach(indexOps::ensureIndex);
-	}
-
-	@Autowired
 	BeanFactory beanFactory;
 
 //	@Autowired

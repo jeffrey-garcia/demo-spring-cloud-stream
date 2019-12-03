@@ -7,7 +7,6 @@ import org.springframework.data.mongodb.core.index.HashIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Document(collection = "DemoEventStoreV2") // specify the name of the collection in MongoDB
 public class DomainEvent {
@@ -35,8 +34,8 @@ public class DomainEvent {
     @JsonProperty("consumerAckOn")
     private LocalDateTime consumerAckOn;
 
-    public DomainEvent(String header, String payload, LocalDateTime writtenOn) {
-        this.id = UUID.randomUUID().toString();
+    public DomainEvent(String id, String header, String payload, LocalDateTime writtenOn) {
+        this.id = id;
         this.header = header;
         this.payload = payload;
         this.writtenOn = writtenOn;
@@ -54,5 +53,21 @@ public class DomainEvent {
 
     public String getId() {
         return id;
+    }
+
+    public String getHeader() {
+        return header;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+
+    public LocalDateTime getWrittenOn() {
+        return writtenOn;
+    }
+
+    public LocalDateTime getProducerAckOn() {
+        return producerAckOn;
     }
 }
