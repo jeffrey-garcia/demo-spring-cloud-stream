@@ -2,7 +2,6 @@ package com.jeffrey.example.demoapp.bindings;
 
 import com.jeffrey.example.demoapp.entity.DomainEvent;
 import com.jeffrey.example.demoapp.service.EventStoreService;
-import com.jeffrey.example.util.ObjectMapperFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,8 +18,6 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 
 @EnableBinding(Source.class)
@@ -85,25 +82,27 @@ public class DemoProducer {
         LOGGER.debug("{}", message.getPayload());
     }
 
-    public void retryProducing() {
-        List<DomainEvent> pendingEvents = eventStoreService.findAllPendingProducerAckEvents();
-        for (DomainEvent pendingEvent:pendingEvents) {
-            String eventId = pendingEvent.getId();
-            LOGGER.debug("retrying event id: {}", eventId);
-
-            try {
-                Map headers = ObjectMapperFactory.getMapper().fromJson(pendingEvent.getHeader(), Map.class);
-                headers.put("eventId", eventId);
-                String payload = ObjectMapperFactory.getMapper().fromJson(pendingEvent.getPayload(), String.class);
-                Message message = MessageBuilder.withPayload(payload).copyHeaders(headers).build();
-                LOGGER.debug("retry producing message: {}", message);
-                sendMessage(message);
-            } catch (Exception e) {
-                throw new RuntimeException(e.getMessage(), e);
-            }
-        }
-
-        // throw exception to retry
-        throw new RuntimeException("dummy exception during retry");
-    }
+    // TODO: this should be in the infrastructure bean
+//    public void retryProducing() {
+//        // fetch all event that has not been sent to broker
+//        List<DomainEvent> pendingEvents = eventStoreService.findAllPendingProducerAckEvents();
+//        LOGGER.debug("number of pending events: {}", pendingEvents.size());
+//
+//        for (DomainEvent pendingEvent:pendingEvents) {
+//            String eventId = pendingEvent.getId();
+//            LOGGER.debug("retrying event id: {}", eventId);
+//
+//            try {
+//                Map headers = ObjectMapperFactory.getMapper().fromJson(pendingEvent.getHeader(), Map.class);
+//                headers.put("eventId", eventId);
+//                String payload = ObjectMapperFactory.getMapper().fromJson(pendingEvent.getPayload(), String.class);
+//
+//                Message message = MessageBuilder.withPayload(payload).copyHeaders(headers).build();
+//                LOGGER.debug("retry producing message: {}", message);
+//
+//                sendMessage(message);
+//
+//            } catch (Exception e) { }
+//        }
+//    }
 }

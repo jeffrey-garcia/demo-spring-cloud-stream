@@ -1,0 +1,7 @@
+eventstore:
+  retry:
+    backoff:
+      milliseconds: 1500
+  producer:
+    timeout:
+      seconds: 1

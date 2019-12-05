@@ -49,6 +49,7 @@ public class EventStoreRepository {
         update.set("header", header);
         update.set("payload", payload);
         update.set("writtenOn", LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault()));
+        update.inc("attemptCount", 1);
         return mongoTemplate.findAndModify(
                 query,
                 update,
@@ -97,5 +98,4 @@ public class EventStoreRepository {
     public List<DomainEvent> findAll() {
         return mongoRepository.findAll();
     }
-
 }

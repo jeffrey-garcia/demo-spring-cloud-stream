@@ -1,7 +1,8 @@
 package com.jeffrey.example.demoapp.config;
 
-import com.jeffrey.example.demoapp.bindings.DemoProducer;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
+import com.jeffrey.example.demoapp.service.EventStoreService;
+import com.jeffrey.example.demoapp.service.RetryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,6 @@ import org.springframework.data.mongodb.core.index.IndexResolver;
 import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.retry.RetryCallback;
-import org.springframework.retry.RetryContext;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.AlwaysRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
@@ -28,6 +28,18 @@ public class EventStoreConfig {
 
     @Value("${eventstore.retry.backoff.milliseconds:30000}")
     long retryBackoffTimeInMs;
+
+    @Autowired
+    MongoTemplate mongoTemplate;
+
+    @Autowired
+    MongoMappingContext mongoMappingContext;
+
+    @Autowired
+    EventStoreService eventStoreService;
+
+    @Autowired
+    RetryService eventStoreRetryService;
 
     @Bean
     @Qualifier("eventStoreRetryTemplate")
@@ -40,18 +52,19 @@ public class EventStoreConfig {
         return retryTemplate;
     }
 
-    @Autowired
-    MongoTemplate mongoTemplate;
+    @Bean
+    @Qualifier("eventStoreRetryCallback")
+    public RetryCallback<Void, RuntimeException> retryCallback() {
+        return retryContext -> {
+            LOGGER.debug("retry count: {}", retryContext.getRetryCount());
 
-    @Autowired
-    MongoMappingContext mongoMappingContext;
+            // TODO: avoid dependency to producer from event store config
+            eventStoreService.retryOperation();
 
-    @Autowired
-    @Qualifier("eventStoreRetryTemplate")
-    RetryTemplate eventStoreRetryTemplate;
-
-    @Autowired
-    DemoProducer producer;
+            // throw RuntimeException to initiate next retry
+            throw new RuntimeException("initiate next retry");
+        };
+    }
 
     @EventListener(ApplicationReadyEvent.class)
     public void postApplicationStartup() {
@@ -61,13 +74,6 @@ public class EventStoreConfig {
         IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
         resolver.resolveIndexFor(DomainEvent.class).forEach(indexOps::ensureIndex);
 
-        eventStoreRetryTemplate.execute(new RetryCallback<Void, RuntimeException>() {
-            @Override
-            public Void doWithRetry(RetryContext retryContext) {
-                LOGGER.debug("retry couunt: {}", retryContext.getRetryCount());
-                producer.retryProducing();
-                return null;
-            }
-        });
+//        eventStoreRetryService.execute();
     }
 }

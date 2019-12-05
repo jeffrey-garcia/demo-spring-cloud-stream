@@ -28,6 +28,9 @@ public class DomainEvent {
     @JsonProperty("writtenOn")
     private LocalDateTime writtenOn;
 
+    @JsonProperty("attemptCount")
+    private long attemptCount;
+
     @JsonProperty("producerAckOn")
     private LocalDateTime producerAckOn;
 
@@ -67,7 +70,18 @@ public class DomainEvent {
         return writtenOn;
     }
 
+    public long getAttemptCount() { return attemptCount; }
+
     public LocalDateTime getProducerAckOn() {
         return producerAckOn;
     }
+
+    public void setAttemptCount(long attemptCount) {
+        this.attemptCount = attemptCount;
+    }
+
+    public void setWrittenOn(LocalDateTime writtenOn) {
+        this.writtenOn = writtenOn;
+    }
+
 }
