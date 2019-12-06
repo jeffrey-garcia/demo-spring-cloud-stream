@@ -101,10 +101,11 @@ spring:
 
 eventstore:
   retry:
+    autoStart: true
     backoff:
       milliseconds: 20000
-  producer:
-    timeout:
-      seconds: 10
+    message:
+      expired:
+        seconds: 10
 
 

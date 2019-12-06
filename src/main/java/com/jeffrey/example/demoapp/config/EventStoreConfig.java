@@ -29,6 +29,9 @@ public class EventStoreConfig {
     @Value("${eventstore.retry.backoff.milliseconds:30000}")
     long retryBackoffTimeInMs;
 
+    @Value("${eventstore.retry.autoStart:true}")
+    boolean autoStart;
+
     @Autowired
     MongoTemplate mongoTemplate;
 
@@ -57,10 +60,7 @@ public class EventStoreConfig {
     public RetryCallback<Void, RuntimeException> retryCallback() {
         return retryContext -> {
             LOGGER.debug("retry count: {}", retryContext.getRetryCount());
-
-            // TODO: avoid dependency to producer from event store config
             eventStoreService.retryOperation();
-
             // throw RuntimeException to initiate next retry
             throw new RuntimeException("initiate next retry");
         };
@@ -74,6 +74,8 @@ public class EventStoreConfig {
         IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
         resolver.resolveIndexFor(DomainEvent.class).forEach(indexOps::ensureIndex);
 
-//        eventStoreRetryService.execute();
+        if (autoStart) {
+            eventStoreRetryService.execute();
+        }
     }
 }

@@ -14,9 +14,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.stream.messaging.Source;
+import org.springframework.cloud.stream.binding.Bindable;
+import org.springframework.context.ApplicationContext;
+import org.springframework.integration.channel.AbstractMessageChannel;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -24,37 +28,49 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.lt;
+import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.*;
 
 @Service
 public class EventStoreService {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreService.class);
 
-    @Autowired
-    EventStoreRepository eventStoreRepository;
+    @Value("${eventstore.retry.message.expired.seconds:15}")
+    private long messageExpiredTimeInSec;
 
-    public DomainEvent upsertEvent(Message<?> message) throws IOException {
-        Map<String, Object> headers = new HashMap<>(message.getHeaders().size());
-        message.getHeaders().forEach(headers::put);
-        String eventId = message.getHeaders().get("eventId", String.class);
+    @Autowired
+    private ApplicationContext applicationContext;
+
+    @Autowired
+    private DemoMongoDbConfig dbConfig;
+
+    @Autowired
+    private EventStoreRepository eventStoreRepository;
+
+    public Message<?> createEventFromMessage(Message<?> message) throws IOException {
+        String eventId = UUID.randomUUID().toString();
+
+        MessageHeaderAccessor accessor = MessageHeaderAccessor.getMutableAccessor(message);
+        accessor.setHeader("eventId", eventId);
+        MessageHeaders messageHeaders = accessor.getMessageHeaders();
+        message = MessageBuilder.fromMessage(message).copyHeaders(messageHeaders).build();
+
+        String jsonHeader = ObjectMapperFactory.getMapper().toJson(message.getHeaders());
+        String jsonPayload = ObjectMapperFactory.getMapper().toJson(message.getPayload());
+        eventStoreRepository.createEvent(eventId, jsonHeader, jsonPayload);
+
+        return message;
+    }
+
+    public DomainEvent updateEventAsReturned(String eventId) throws NullPointerException {
         if (StringUtils.isEmpty(eventId)) {
-            eventId = UUID.randomUUID().toString();
-            headers.put("eventId", eventId);
-            String jsonHeader = ObjectMapperFactory.getMapper().toJson(headers);
-            String jsonPayload = ObjectMapperFactory.getMapper().toJson(message.getPayload());
-            return eventStoreRepository.createEvent(eventId, jsonHeader, jsonPayload);
-        } else {
-            String jsonHeader = ObjectMapperFactory.getMapper().toJson(headers);
-            String jsonPayload = ObjectMapperFactory.getMapper().toJson(message.getPayload());
-            return eventStoreRepository.updateWrittenTimestamp(eventId, jsonHeader, jsonPayload);
+            throw new NullPointerException("eventId should not be null");
         }
+        return eventStoreRepository.updateReturnedTimestamp(eventId);
     }
 
     public DomainEvent updateEventAsProduced(String eventId) throws NullPointerException {
@@ -71,19 +87,6 @@ public class EventStoreService {
         return eventStoreRepository.updateConsumedTimestamp(eventId);
     }
 
-    public List<DomainEvent> findAllPendingProducerAckEvents() {
-        return eventStoreRepository.findAllPendingProducerAck();
-    }
-
-    @Value("${eventstore.producer.timeout.seconds:15}")
-    private long producerTimeoutInSec;
-
-    @Autowired
-    Source source;
-
-    @Autowired
-    DemoMongoDbConfig dbConfig;
-
     public void retryOperation() {
         MongoClient client = dbConfig.mongoClient();
         String dbName = dbConfig.mongoDbFactory().getDb().getName();
@@ -92,30 +95,33 @@ public class EventStoreService {
             session.withTransaction(() -> {
                 MongoCollection<Document> collection = client.getDatabase(dbName).getCollection("DemoEventStoreV2");
 
+                // query all message that was sent at least X (messageExpiredTimeInSec) seconds ago
+                // X should NOT be less than the typical message sending timeout
                 LocalDateTime currentDateTime = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
                 FindIterable<Document> documents = collection.find(
-                        session,
-                        combine(
-                            lt("writtenOn", currentDateTime.minusSeconds(producerTimeoutInSec)),
-                            eq("producerAckOn", null),
-                            eq("consumerAckOn", null)
-                        )
+                    session,
+                    combine(
+                        lt("writtenOn", currentDateTime.minusSeconds(messageExpiredTimeInSec)),
+                        or(eq("producerAckOn", null),ne("returnedOn", null)),
+                        eq("consumerAckOn", null)
+                    )
                 );
 
                 for (Document document:documents) {
                     String eventId = document.get("_id", String.class);
-
                     UpdateResult result = collection.updateOne(
                         session,
                         eq("_id", eventId),
                         combine(
                             inc("attemptCount", +1L),
-                            set("writtenOn", LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault()))
+                            set("writtenOn", LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault())),
+                            unset("producerAckOn"), // remove the producer ack timestamp upon resend
+                            unset("returnedOn") // remove the return timestamp upon resend
                         )
                     );
 
                     if (result.getModifiedCount() == 1) {
-                        LOGGER.debug("updated event id: {}", eventId);
+                        LOGGER.debug("retry event id: {}", eventId);
 
                         try {
                             Map headers = ObjectMapperFactory.getMapper().fromJson(document.get("header", String.class), Map.class);
@@ -124,7 +130,7 @@ public class EventStoreService {
 
                             Message message = MessageBuilder.withPayload(payload).copyHeaders(headers).build();
                             LOGGER.debug("send message: {}", message);
-                            source.output().send(message);
+                            sendMessage(message);
 
                         } catch (IOException e) {
                             // one event fail shouldn't cancel the entire retry operation
@@ -139,6 +145,23 @@ public class EventStoreService {
         } catch (RuntimeException e) {
             LOGGER.error("abort tx: {}", e.getMessage());
             throw e;
+        }
+    }
+
+    protected void sendMessage(Message<?> message) {
+        String[] bindableBeanNames = applicationContext.getBeanNamesForType(Bindable.class);
+        LOGGER.debug("bindable beans: {}", bindableBeanNames);
+
+        for (String bindableBeanName:bindableBeanNames) {
+            Bindable bindable = (Bindable) applicationContext.getBean(bindableBeanName);
+            for (String binding:bindable.getOutputs()) {
+                Object bindableBean = applicationContext.getBean(binding);
+                if (bindableBean instanceof AbstractMessageChannel) {
+                    AbstractMessageChannel abstractMessageChannel = (AbstractMessageChannel) bindableBean;
+                    LOGGER.debug("sending message to output message channel: {}", abstractMessageChannel.getFullChannelName());
+                    abstractMessageChannel.send(message);
+                }
+            }
         }
     }
 

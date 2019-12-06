@@ -9,8 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.stream.messaging.Source;
+import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
@@ -23,26 +22,25 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
 @Import({
         DemoMongoDbConfig.class,
         EventStoreRepository.class,
         EventStoreService.class,
 })
-@ActiveProfiles("test")
+@DataMongoTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@ActiveProfiles("test")
+@RunWith(SpringRunner.class)
 public class EventStoreServiceIT {
 
-    @Value("${eventstore.producer.timeout.seconds:15}")
-    long producerTimeoutInSec;
+    @Value("${eventstore.retry.message.expired.seconds:15}")
+    long messageExpiredTimeInSec;
 
     @Value("${eventstore.retry.backoff.milliseconds:30000}")
     long retryBackoffTimeInMs;
@@ -53,35 +51,17 @@ public class EventStoreServiceIT {
     @Autowired
     EventStoreService eventStoreService;
 
-    @Autowired
-    Source source;
-
     @Before
     public void setUp() {
         eventStoreRepository.deleteAll();
     }
 
     @Test
-    public void test() throws IOException {
+    public void testCreateEvent() throws IOException {
         Message message = MessageBuilder.withPayload("testing message").build();
-        DomainEvent domainEvent1 = eventStoreService.upsertEvent(message);
-        DomainEvent domainEvent2 = eventStoreService.upsertEvent(message);
+        eventStoreService.createEventFromMessage(message);
+        eventStoreService.createEventFromMessage(message);
         Assert.assertEquals(2, eventStoreRepository.findAll().size());
-    }
-
-    @Test
-    public void testFindAllPendingProducerAckEvents() throws IOException, InterruptedException {
-        Message message = MessageBuilder.withPayload("testing message").build();
-        eventStoreService.upsertEvent(message);
-        List<DomainEvent> domainEventList = eventStoreService.findAllPendingProducerAckEvents();
-        Assert.assertEquals(0, domainEventList.size());
-
-        Thread.sleep(producerTimeoutInSec * 1000);
-        domainEventList = eventStoreService.findAllPendingProducerAckEvents();
-        Assert.assertEquals(1, domainEventList.size());
-
-        domainEventList = eventStoreRepository.findAll();
-        Assert.assertTrue(domainEventList.get(0).getWrittenOn().isBefore(LocalDateTime.now().minusSeconds(producerTimeoutInSec)));
     }
 
     @Test
@@ -113,10 +93,10 @@ public class EventStoreServiceIT {
     }
 
     @Test
-    public void testConcurrentRetry() throws Throwable {
+    public void testConcurrentRetry_noProducerAck() throws Throwable {
         final int MAX_MESSAGE = 2;
         for (int i=0; i<MAX_MESSAGE; i++) {
-            eventStoreService.upsertEvent(MessageBuilder.withPayload("testing message " + i).build());
+            eventStoreService.createEventFromMessage(MessageBuilder.withPayload("testing message " + i).build());
         }
         Thread.sleep(retryBackoffTimeInMs);
 

@@ -1,21 +1,19 @@
 package com.jeffrey.example.demoapp.bindings;
 
-import com.jeffrey.example.demoapp.entity.DomainEvent;
 import com.jeffrey.example.demoapp.service.EventStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.messaging.Source;
+import org.springframework.integration.amqp.support.NackedAmqpMessageException;
 import org.springframework.integration.amqp.support.ReturnedAmqpMessageException;
 import org.springframework.integration.annotation.Publisher;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.MessageDeliveryException;
 import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.support.ErrorMessage;
-import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.messaging.support.MessageHeaderAccessor;
 
 import java.io.IOException;
 
@@ -32,17 +30,18 @@ public class DemoProducer {
 
     @Publisher(channel = Source.OUTPUT)
     public void sendMessage(Message<?> message) throws IOException {
-        DomainEvent event = eventStoreService.upsertEvent(message);
+//        DomainEvent event = eventStoreService.upsertEvent(message);
+//        MessageHeaderAccessor accessor = MessageHeaderAccessor.getMutableAccessor(message);
+//        accessor.setHeader("eventId", event.getId());
+//        MessageHeaders messageHeaders = accessor.getMessageHeaders();
+//        message = MessageBuilder.fromMessage(message).copyHeaders(messageHeaders).build();
 
-        MessageHeaderAccessor accessor = MessageHeaderAccessor.getMutableAccessor(message);
-        accessor.setHeader("eventId", event.getId());
-        MessageHeaders messageHeaders = accessor.getMessageHeaders();
-        message = MessageBuilder.fromMessage(message).copyHeaders(messageHeaders).build();
-
+        message = eventStoreService.createEventFromMessage(message);
         boolean result = source.output().send(message);
         LOGGER.debug("send result: {}", result);
     }
 
+    // TODO: move this to the infrastructure bean
     @ServiceActivator(inputChannel = "errorChannel")
     public void onError(ErrorMessage errorMessage) {
         /**
@@ -54,21 +53,43 @@ public class DemoProducer {
          */
         MessagingException exception = (MessagingException) errorMessage.getPayload();
 
-        // retrieve the original message for subsequent retry/error handling
-        Message message = exception.getFailedMessage();
-        LOGGER.debug("original message: {}", new String((byte[])message.getPayload()));
-
         // capture any publisher error
         if (exception instanceof ReturnedAmqpMessageException) {
+            LOGGER.debug("error sending message to broker");
             ReturnedAmqpMessageException amqpMessageException = (ReturnedAmqpMessageException) exception;
             // producer's message not be accepted by RabbitMQ
             // the message is returned with a negative ack
             String errorReason = amqpMessageException.getReplyText();
             int errorCode = amqpMessageException.getReplyCode();
+
+            org.springframework.amqp.core.Message amqpMessage = amqpMessageException.getAmqpMessage();
+            String eventId = (String) amqpMessage.getMessageProperties().getHeaders().get("eventId");
+            eventStoreService.updateEventAsReturned(eventId);
             LOGGER.debug("error reason: {}, error code: {}", errorReason, errorCode);
+            return;
+        }
+
+        if (exception instanceof NackedAmqpMessageException) {
+            LOGGER.debug("error sending message to broker");
+            NackedAmqpMessageException nackedAmqpMessageException = (NackedAmqpMessageException) exception;
+            String errorReason = nackedAmqpMessageException.getNackReason();
+
+            String eventId = nackedAmqpMessageException.getFailedMessage().getHeaders().get("eventId", String.class);
+            eventStoreService.updateEventAsReturned(eventId);
+            LOGGER.debug("error reason: {}", errorReason);
+            return;
+        }
+
+        if (exception instanceof MessageDeliveryException) {
+            LOGGER.debug("error delivering message to consumer");
+            MessageDeliveryException deliveryException = (MessageDeliveryException) exception;
+            String errorReason = deliveryException.getMessage();
+            LOGGER.debug("error reason: {}", errorReason);
+            return;
         }
     }
 
+    // TODO: move this to the infrastructure bean
     @ServiceActivator(inputChannel = "publisher-confirm")
     public void onPublisherConfirm(Message message) {
         /**
@@ -76,33 +97,10 @@ public class DemoProducer {
          */
         Boolean publisherConfirm = message.getHeaders().get("amqp_publishConfirm", Boolean.class);
         if (publisherConfirm != null && publisherConfirm) {
+            // TODO: returned message would also produce a positive ack
             eventStoreService.updateEventAsProduced(message.getHeaders().get("eventId", String.class));
+            LOGGER.debug("message successfully published: {}", message.getPayload());
         }
-
-        LOGGER.debug("{}", message.getPayload());
     }
 
-    // TODO: this should be in the infrastructure bean
-//    public void retryProducing() {
-//        // fetch all event that has not been sent to broker
-//        List<DomainEvent> pendingEvents = eventStoreService.findAllPendingProducerAckEvents();
-//        LOGGER.debug("number of pending events: {}", pendingEvents.size());
-//
-//        for (DomainEvent pendingEvent:pendingEvents) {
-//            String eventId = pendingEvent.getId();
-//            LOGGER.debug("retrying event id: {}", eventId);
-//
-//            try {
-//                Map headers = ObjectMapperFactory.getMapper().fromJson(pendingEvent.getHeader(), Map.class);
-//                headers.put("eventId", eventId);
-//                String payload = ObjectMapperFactory.getMapper().fromJson(pendingEvent.getPayload(), String.class);
-//
-//                Message message = MessageBuilder.withPayload(payload).copyHeaders(headers).build();
-//                LOGGER.debug("retry producing message: {}", message);
-//
-//                sendMessage(message);
-//
-//            } catch (Exception e) { }
-//        }
-//    }
 }

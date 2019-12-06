@@ -1,7 +1,8 @@
 eventstore:
   retry:
+    autoStart: false # disable the auto retry when running integration test
     backoff:
       milliseconds: 1500
-  producer:
-    timeout:
-      seconds: 1
+    message:
+      expired:
+        seconds: 1

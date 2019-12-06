@@ -177,20 +177,20 @@ public class DemoConsumer {
 //        }
 //    }
 
-    @ServiceActivator(inputChannel = "errorChannel")
-    public void onError(ErrorMessage errorMessage) {
-        /**
-         * Global error messages interceptor
-         */
-        MessagingException exception = (MessagingException) errorMessage.getPayload();
-        Message message = exception.getFailedMessage();
-        LOGGER.debug("original message: {}", new String((byte[])message.getPayload()));
-
-        if (exception instanceof MessageDeliveryException) {
-            MessageDeliveryException deliveryException = (MessageDeliveryException) exception;
-            String errorReason = deliveryException.getMessage();
-            LOGGER.debug("error reason: {}", errorReason);
-        }
-    }
+//    @ServiceActivator(inputChannel = "errorChannel")
+//    public void onError(ErrorMessage errorMessage) {
+//        /**
+//         * Global error messages interceptor
+//         */
+//        MessagingException exception = (MessagingException) errorMessage.getPayload();
+//        Message message = exception.getFailedMessage();
+//        LOGGER.debug("original message: {}", new String((byte[])message.getPayload()));
+//
+//        if (exception instanceof MessageDeliveryException) {
+//            MessageDeliveryException deliveryException = (MessageDeliveryException) exception;
+//            String errorReason = deliveryException.getMessage();
+//            LOGGER.debug("error reason: {}", errorReason);
+//        }
+//    }
 
 }

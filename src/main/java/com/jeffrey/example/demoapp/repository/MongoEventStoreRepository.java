@@ -8,7 +8,4 @@ import java.util.List;
 
 public interface MongoEventStoreRepository extends MongoRepository<DomainEvent, String> {
 
-    @Query("{ 'producerAckOn' : null }")
-    List<DomainEvent> findAllByProducerAckOnIsNull();
-
 }
