@@ -60,7 +60,7 @@ public class EventStoreConfig {
     public RetryCallback<Void, RuntimeException> retryCallback() {
         return retryContext -> {
             LOGGER.debug("retry count: {}", retryContext.getRetryCount());
-            eventStoreService.retryOperation();
+            eventStoreService.fetchEventAndResend();
             // throw RuntimeException to initiate next retry
             throw new RuntimeException("initiate next retry");
         };

@@ -25,6 +25,9 @@ public class DomainEvent {
     @JsonProperty("payload")
     private String payload;
 
+    @JsonProperty("payloadClass")
+    private String payloadClass;
+
     @JsonProperty("writtenOn")
     private LocalDateTime writtenOn;
 
@@ -40,10 +43,11 @@ public class DomainEvent {
     @JsonProperty("consumerAckOn")
     private LocalDateTime consumerAckOn;
 
-    public DomainEvent(String id, String header, String payload, LocalDateTime writtenOn) {
+    public DomainEvent(String id, String header, String payload, String payloadClass, LocalDateTime writtenOn) {
         this.id = id;
         this.header = header;
         this.payload = payload;
+        this.payloadClass = payloadClass;
         this.writtenOn = writtenOn;
     }
 

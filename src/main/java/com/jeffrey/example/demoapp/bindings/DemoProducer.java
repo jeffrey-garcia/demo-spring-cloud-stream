@@ -30,12 +30,6 @@ public class DemoProducer {
 
     @Publisher(channel = Source.OUTPUT)
     public void sendMessage(Message<?> message) throws IOException {
-//        DomainEvent event = eventStoreService.upsertEvent(message);
-//        MessageHeaderAccessor accessor = MessageHeaderAccessor.getMutableAccessor(message);
-//        accessor.setHeader("eventId", event.getId());
-//        MessageHeaders messageHeaders = accessor.getMessageHeaders();
-//        message = MessageBuilder.fromMessage(message).copyHeaders(messageHeaders).build();
-
         message = eventStoreService.createEventFromMessage(message);
         boolean result = source.output().send(message);
         LOGGER.debug("send result: {}", result);

@@ -1,8 +1,9 @@
 package com.jeffrey.example.demoapp.service;
 
-import com.jeffrey.example.demoapp.config.DemoMongoDbConfig;
+import com.jeffrey.example.demoapp.config.MongoDbConfig;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
-import com.jeffrey.example.demoapp.repository.EventStoreRepository;
+import com.jeffrey.example.demoapp.repository.EventStoreDao;
+import com.jeffrey.example.demoapp.repository.MongoEventStoreDao;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,8 +30,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Import({
-        DemoMongoDbConfig.class,
-        EventStoreRepository.class,
+        MongoDbConfig.class,
+        MongoEventStoreDao.class,
         EventStoreService.class,
 })
 @DataMongoTest
@@ -46,14 +47,14 @@ public class EventStoreServiceIT {
     long retryBackoffTimeInMs;
 
     @Autowired
-    EventStoreRepository eventStoreRepository;
+    EventStoreDao eventStoreDao;
 
     @Autowired
     EventStoreService eventStoreService;
 
     @Before
     public void setUp() {
-        eventStoreRepository.deleteAll();
+        eventStoreDao.deleteAll();
     }
 
     @Test
@@ -61,7 +62,12 @@ public class EventStoreServiceIT {
         Message message = MessageBuilder.withPayload("testing message").build();
         eventStoreService.createEventFromMessage(message);
         eventStoreService.createEventFromMessage(message);
-        Assert.assertEquals(2, eventStoreRepository.findAll().size());
+        Assert.assertEquals(2, eventStoreDao.findAll().size());
+    }
+
+    @Test
+    public void testFetchEventAndResend() {
+        eventStoreService.fetchEventAndResend();
     }
 
     @Test
@@ -115,7 +121,7 @@ public class EventStoreServiceIT {
 
         RetryCallback retryCallback = (RetryCallback<Void, RuntimeException>) retryContext -> {
             count.incrementAndGet();
-            eventStoreService.retryOperation();
+            eventStoreService.fetchEventAndResend();
             throw new RuntimeException("initiate next retry with backoff period");
         };
         RetryService retryService = new RetryService(retryTemplate, retryCallback);
@@ -138,7 +144,7 @@ public class EventStoreServiceIT {
 
         Assert.assertEquals(MAX_ATTEMPT * MAX_THREAD, count.get());
 
-        List<DomainEvent> domainEvents = eventStoreRepository.findAll();
+        List<DomainEvent> domainEvents = eventStoreDao.findAll();
         Assert.assertEquals(MAX_MESSAGE, domainEvents.size());
         domainEvents.forEach(domainEvent -> {
             Assert.assertEquals(MAX_ATTEMPT, domainEvent.getAttemptCount());

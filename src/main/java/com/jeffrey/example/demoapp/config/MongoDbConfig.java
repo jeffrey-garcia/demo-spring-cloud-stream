@@ -19,8 +19,8 @@ import org.springframework.util.Assert;
 
 @Configuration
 @EnableTransactionManagement
-public class DemoMongoDbConfig extends AbstractMongoClientConfiguration {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DemoMongoDbConfig.class);
+public class MongoDbConfig extends AbstractMongoClientConfiguration {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbConfig.class);
 
     @Value("${spring.data.mongodb.uri:#{null}}")
     protected String mongoDbConnectionString;
