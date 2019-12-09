@@ -10,43 +10,48 @@ import org.springframework.cloud.stream.binding.Bindable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.integration.channel.AbstractMessageChannel;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.AlternativeJdkIdGenerator;
+import org.springframework.util.IdGenerator;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class EventStoreService<T> {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreService.class);
 
-    private EventStoreDao eventStoreDao;
-
     @Autowired
     ApplicationContext applicationContext;
 
-    public EventStoreService(@Autowired EventStoreDao eventStoreDao) {
+    private EventStoreDao eventStoreDao;
+
+    private IdGenerator eventIdGenerator = new AlternativeJdkIdGenerator();
+
+    public EventStoreService(
+            EventStoreDao eventStoreDao
+    ) {
         this.eventStoreDao = eventStoreDao;
     }
 
     public Message<?> createEventFromMessage(Message<?> message) throws IOException {
-        String eventId = UUID.randomUUID().toString();
+        String eventId = eventIdGenerator.generateId().toString();
 
-        // generate eventId and return insert to message's header
-        MessageHeaderAccessor accessor = MessageHeaderAccessor.getMutableAccessor(message);
-        accessor.setHeader("eventId", eventId);
-        MessageHeaders messageHeaders = accessor.getMessageHeaders();
-        message = MessageBuilder.fromMessage(message).copyHeaders(messageHeaders).build();
+        // The MessageHeaders.ID and MessageHeaders.TIMESTAMP are read-only headers and cannot be overridden
+        // generate eventId and build a new message which insert eventId to message's header
+        message = MessageBuilder
+                .withPayload(message.getPayload())
+                .copyHeaders(message.getHeaders())
+                .setHeader("eventId", eventId)
+                .build();
 
         String jsonHeader = ObjectMapperFactory.getMapper().toJson(message.getHeaders());
         String jsonPayload = ObjectMapperFactory.getMapper().toJson(message.getPayload());
-        String payloadClass = message.getPayload().getClass().getName();
+        String payloadClassName = message.getPayload().getClass().getName();
 
-        eventStoreDao.createEvent(eventId, jsonHeader, jsonPayload, payloadClass);
+        eventStoreDao.createEvent(eventId, jsonHeader, jsonPayload, payloadClassName);
         return message;
     }
 
@@ -78,23 +83,18 @@ public class EventStoreService<T> {
         });
     }
 
-//    public void fetchEventAndResend2() {
-//        eventStoreDao.filterPendingProducerAckOrReturned((eventId, jsonHeaders, jsonPayload, payloadClass) -> {
-//            Message<?> message = createMessageFromEvent(eventId, jsonHeaders, jsonPayload, payloadClass);
-//            sendMessage(message);
-//        });
-//    }
-
-    private Message<?> createMessageFromEvent(String eventId, String jsonHeader, String jsonPayload, Class<T> payloadClazz) throws IOException {
+    protected Message<?> createMessageFromEvent(String eventId, String jsonHeader, String jsonPayload, Class<T> payloadClass) throws IOException {
         Map headers = ObjectMapperFactory.getMapper().fromJson(jsonHeader, Map.class);
         headers.put("eventId", eventId);
-        T payload = ObjectMapperFactory.getMapper().fromJson(jsonPayload, payloadClazz);
+
+        T payload = ObjectMapperFactory.getMapper().fromJson(jsonPayload, payloadClass);
         Message message = MessageBuilder.withPayload(payload).copyHeaders(headers).build();
+
         LOGGER.debug("send message: {}", message);
         return message;
     }
 
-    private void sendMessage(Message<?> message) {
+    protected void sendMessage(Message<?> message) {
         String[] bindableBeanNames = applicationContext.getBeanNamesForType(Bindable.class);
         LOGGER.debug("bindable beans: {}", bindableBeanNames);
 

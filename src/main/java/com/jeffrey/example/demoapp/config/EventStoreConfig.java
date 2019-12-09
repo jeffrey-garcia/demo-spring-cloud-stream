@@ -26,7 +26,7 @@ import org.springframework.retry.support.RetryTemplate;
 public class EventStoreConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreConfig.class);
 
-    @Value("${eventstore.retry.backoff.milliseconds:30000}")
+    @Value("${eventstore.retry.backoff.milliseconds:90000}") // retry backoff default to 90s if undefined
     long retryBackoffTimeInMs;
 
     @Value("${eventstore.retry.autoStart:true}")

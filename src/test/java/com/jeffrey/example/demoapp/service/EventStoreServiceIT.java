@@ -2,6 +2,8 @@ package com.jeffrey.example.demoapp.service;
 
 import com.jeffrey.example.demoapp.config.MongoDbConfig;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
+import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;
+import com.jeffrey.example.demoapp.model.DemoMessageModel;
 import com.jeffrey.example.demoapp.repository.EventStoreDao;
 import com.jeffrey.example.demoapp.repository.MongoEventStoreDao;
 import org.junit.Assert;
@@ -24,6 +26,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -106,7 +109,8 @@ public class EventStoreServiceIT {
         }
         Thread.sleep(retryBackoffTimeInMs);
 
-        final int MAX_ATTEMPT = 3;
+        final int INITIAL_ATTEMPT = 1;
+        final int MAX_RETRY_ATTEMPT = 3;
 
         RetryTemplate retryTemplate = new RetryTemplate();
         FixedBackOffPolicy fixedBackOffPolicy = new FixedBackOffPolicy();
@@ -114,7 +118,7 @@ public class EventStoreServiceIT {
         retryTemplate.setBackOffPolicy(fixedBackOffPolicy);
 
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-        retryPolicy.setMaxAttempts(MAX_ATTEMPT);
+        retryPolicy.setMaxAttempts(MAX_RETRY_ATTEMPT);
         retryTemplate.setRetryPolicy(retryPolicy);
 
         final AtomicInteger count = new AtomicInteger();
@@ -142,12 +146,12 @@ public class EventStoreServiceIT {
             lock.await();
         } catch (InterruptedException e) { }
 
-        Assert.assertEquals(MAX_ATTEMPT * MAX_THREAD, count.get());
+        Assert.assertEquals(MAX_RETRY_ATTEMPT * MAX_THREAD, count.get());
 
         List<DomainEvent> domainEvents = eventStoreDao.findAll();
         Assert.assertEquals(MAX_MESSAGE, domainEvents.size());
         domainEvents.forEach(domainEvent -> {
-            Assert.assertEquals(MAX_ATTEMPT, domainEvent.getAttemptCount());
+            Assert.assertEquals((MAX_RETRY_ATTEMPT + INITIAL_ATTEMPT), domainEvent.getAttemptCount());
         });
     }
 
@@ -162,8 +166,23 @@ public class EventStoreServiceIT {
     }
 
     @Test
-    public void testMessageSerializing() {
-        Assert.fail("not implemented");
+    public void testMessageSerializing() throws IOException, ClassNotFoundException {
+        DemoInsurancePolicy policy = new DemoInsurancePolicy(UUID.randomUUID().toString(), "Steve Rogers");
+        DemoMessageModel messageModel = new DemoMessageModel(policy);
+        Message message = eventStoreService.createEventFromMessage(MessageBuilder.withPayload(messageModel).build());
+
+        DomainEvent domainEvent = eventStoreDao.findAll().get(0);
+        String eventId = domainEvent.getId();
+        String jsonHeaders = domainEvent.getHeader();
+        String jsonPayload = domainEvent.getPayload();
+        String payloadClassName = domainEvent.getPayloadClassName();
+
+        Class payloadClass = Class.forName(payloadClassName);
+        Message _message = eventStoreService.createMessageFromEvent(eventId, jsonHeaders, jsonPayload, payloadClass);
+
+        Assert.assertTrue(_message.getPayload() instanceof DemoMessageModel);
+        Assert.assertEquals(policy.getPolicyId(), ((DemoMessageModel)_message.getPayload()).getDemoInsurancePolicy().getPolicyId());
+        Assert.assertEquals(policy.getPolicyHolder(), ((DemoMessageModel)_message.getPayload()).getDemoInsurancePolicy().getPolicyHolder());
     }
 
 }

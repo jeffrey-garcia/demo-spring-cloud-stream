@@ -3,7 +3,6 @@ package com.jeffrey.example.demoapp.repository;
 import com.jeffrey.example.demoapp.command.EventStoreCallbackCommand;
 import com.jeffrey.example.demoapp.config.MongoDbConfig;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
-import com.jeffrey.example.util.ObjectMapperFactory;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
@@ -14,36 +13,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.stream.binding.Bindable;
-import org.springframework.context.ApplicationContext;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.integration.channel.AbstractMessageChannel;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
 
 import static com.mongodb.client.model.Filters.*;
-import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Updates.*;
-import static com.mongodb.client.model.Updates.unset;
 
 @Component
 public class MongoEventStoreDao extends AbstractEventStoreDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoEventStoreDao.class);
 
-    @Value("${eventstore.retry.message.expired.seconds:15}")
+    @Value("${eventstore.retry.message.expired.seconds:60}") // message sending expiry default to 60s
     private long messageExpiredTimeInSec;
 
     @Autowired
@@ -56,12 +46,12 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
     private MongoDbConfig mongoDbConfig;
 
     @Override
-    public DomainEvent createEvent(String eventId, String header, String payload, String payloadClass) {
+    public DomainEvent createEvent(String eventId, String header, String payload, String payloadClassName) {
         DomainEvent domainEvent = new DomainEvent(
                 eventId,
                 header,
                 payload,
-                payloadClass,
+                payloadClassName,
                 LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault())
         );
         return mongoRepository.save(domainEvent);
@@ -147,22 +137,13 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                         LOGGER.debug("retry event id: {}", eventId);
 
                         try {
-//                            Map headers = ObjectMapperFactory.getMapper().fromJson(document.get("header", String.class), Map.class);
-//                            headers.put("eventId", eventId);
-//                            String payload = ObjectMapperFactory.getMapper().fromJson(document.get("payload", String.class), String.class);
-//
-//                            Message message = MessageBuilder.withPayload(payload).copyHeaders(headers).build();
-//                            LOGGER.debug("send message: {}", message);
-//                            sendMessage(message);
-
-                            callbackCommand.pendingEventfetched(
+                            callbackCommand.pendingEventFetched(
                                     eventId,
                                     document.get("header", String.class),
                                     document.get("payload", String.class),
-                                    Object.class
+                                    Class.forName(document.get("payloadClassName", String.class))
                             );
-
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                             // one event fail shouldn't cancel the entire retry operation
                             LOGGER.error(e.getMessage(), e);
                         }
@@ -177,14 +158,6 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
             throw e;
         }
     }
-
-//    public void filterPendingProducerAckOrReturned(EventStoreCallbackCommand callbackCommand) {
-//        try {
-//            callbackCommand.pendingEventfetched("123456", "{}", "{}", Object.class);
-//        } catch (IOException e) {
-//            LOGGER.error(e.getMessage(), e);
-//        }
-//    }
 
     @Override
     public void deleteAll() {

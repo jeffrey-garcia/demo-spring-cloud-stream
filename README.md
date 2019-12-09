@@ -296,6 +296,7 @@ rabbitmq-server
     - [Spring Cloud Stream - error handling](https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/#spring-cloud-stream-overview-error-handling)
     - [Spring Cloud Stream Rabbit Binder - dead letter queue](https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/#rabbit-dlq-processing)
     - [Blog - Kafka Streams and Spring Cloud Streams](https://spring.io/blog/2018/04/19/kafka-streams-and-spring-cloud-stream)
+    - [Spring Integration Message](https://docs.spring.io/spring-integration/docs/current/reference/html/message.html)
     
 - Stackoverflow/GitHub issue
     - [Spring Cloud Stream - publisher confirm](https://stackoverflow.com/a/43236682/12364493)
