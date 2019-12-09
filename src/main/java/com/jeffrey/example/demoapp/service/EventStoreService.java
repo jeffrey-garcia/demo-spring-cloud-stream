@@ -6,36 +6,48 @@ import com.jeffrey.example.demoapp.util.ObjectMapperFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cloud.stream.binding.Bindable;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.EventListener;
 import org.springframework.integration.channel.AbstractMessageChannel;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.retry.RetryCallback;
 import org.springframework.stereotype.Service;
-import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.IdGenerator;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
-import java.time.Clock;
 import java.util.Map;
 
 @Service
 public class EventStoreService<T> {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreService.class);
 
-    @Autowired
-    ApplicationContext applicationContext;
+    @Value("${eventstore.retry.autoStart:true}")
+    boolean autoStart;
+
+    private ApplicationContext applicationContext;
+
+    private EventStoreRetryService eventStoreRetryService;
 
     private EventStoreDao eventStoreDao;
 
-    private IdGenerator eventIdGenerator = new AlternativeJdkIdGenerator();
+    private IdGenerator eventIdGenerator;
 
     public EventStoreService(
-            EventStoreDao eventStoreDao
+            @Autowired ApplicationContext applicationContext,
+            @Autowired @Qualifier("eventIdGenerator") IdGenerator eventIdGenerator,
+            @Autowired EventStoreDao eventStoreDao,
+            @Autowired EventStoreRetryService eventStoreRetryService
     ) {
+        this.applicationContext = applicationContext;
+        this.eventIdGenerator = eventIdGenerator;
         this.eventStoreDao = eventStoreDao;
-        this.eventStoreDao.configureClock(Clock.systemDefaultZone());
+        this.eventStoreRetryService = eventStoreRetryService;
     }
 
     public Message<?> createEventFromMessage(Message<?> message) throws IOException {
@@ -111,6 +123,20 @@ public class EventStoreService<T> {
                     abstractMessageChannel.send(message);
                 }
             }
+        }
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void postApplicationStartup() {
+        eventStoreDao.initializeDb();
+
+        if (autoStart) {
+            eventStoreRetryService.execute((RetryCallback<Void, RuntimeException>) retryContext -> {
+                LOGGER.debug("retry count: {}", retryContext.getRetryCount());
+                fetchEventAndResend();
+                // throw RuntimeException to initiate next retry
+                throw new RuntimeException("initiate next retry");
+            });
         }
     }
 

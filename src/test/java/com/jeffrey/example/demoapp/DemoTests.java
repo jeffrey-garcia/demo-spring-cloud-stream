@@ -116,7 +116,7 @@ public class DemoTests {
 
         Map<String, String> filteredZoneIdOffsetMap = new LinkedHashMap<>();
         zoneIdOffsetMap.entrySet().stream().filter(entry -> {
-           if (entry.getValue().equals("+09:00")) {
+           if (entry.getValue().equals("+08:00")) {
                return true;
            } else {
                return false;

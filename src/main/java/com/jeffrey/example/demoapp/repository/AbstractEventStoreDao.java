@@ -7,6 +7,8 @@ import java.time.Clock;
 
 public abstract class AbstractEventStoreDao implements EventStoreDao {
 
+    public abstract void initializeDb();
+
     public abstract void configureClock(Clock clock);
 
     public abstract DomainEvent createEvent(String eventId, String header, String payload, String payloadClass);

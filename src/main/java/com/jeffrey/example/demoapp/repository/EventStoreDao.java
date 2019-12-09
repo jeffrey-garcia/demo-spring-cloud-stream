@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface EventStoreDao {
 
+    void initializeDb();
+
     void configureClock(Clock clock);
 
     DomainEvent createEvent(String eventId, String header, String payload, String payloadClass);

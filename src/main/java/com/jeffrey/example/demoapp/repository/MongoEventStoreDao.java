@@ -9,12 +9,18 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
+import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.IndexOperations;
+import org.springframework.data.mongodb.core.index.IndexResolver;
+import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver;
+import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -35,16 +41,38 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
     @Value("${eventstore.retry.message.expired.seconds:60}") // message sending expiry default to 60s
     private long messageExpiredTimeInSec;
 
-    @Autowired
-    private MongoEventStoreRepository mongoRepository;
+    private Clock clock;
 
-    @Autowired
-    private MongoTemplate mongoTemplate;
-
-    @Autowired
     private MongoDbConfig mongoDbConfig;
 
-    private Clock clock;
+    private MongoEventStoreRepository mongoRepository;
+
+    private MongoTemplate mongoTemplate;
+
+    private MongoMappingContext mongoMappingContext;
+
+    public MongoEventStoreDao(
+            @Autowired @Qualifier("eventStoreClock") Clock clock,
+            @Autowired MongoDbConfig mongoDbConfig,
+            @Autowired MongoEventStoreRepository mongoRepository,
+            @Autowired MongoTemplate mongoTemplate,
+            @Autowired MongoMappingContext mongoMappingContext
+    ) {
+        this.clock = clock;
+        this.mongoDbConfig = mongoDbConfig;
+        this.mongoRepository = mongoRepository;
+        this.mongoTemplate = mongoTemplate;
+        this.mongoMappingContext = mongoMappingContext;
+    }
+
+    @Override
+    public void initializeDb() {
+        // Although index creation via annotations comes in handy for many scenarios
+        // consider taking over more control by setting up indices manually via IndexOperations.
+        IndexOperations indexOps = mongoTemplate.indexOps(DomainEvent.class);
+        IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
+        resolver.resolveIndexFor(DomainEvent.class).forEach(indexOps::ensureIndex);
+    }
 
     @Override
     public void configureClock(Clock clock) {

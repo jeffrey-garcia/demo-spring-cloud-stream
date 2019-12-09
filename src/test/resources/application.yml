@@ -1,4 +1,5 @@
 eventstore:
+  timezone: Asia/Hong_Kong
   retry:
     autoStart: false # disable the auto retry when running integration test
     backoff:

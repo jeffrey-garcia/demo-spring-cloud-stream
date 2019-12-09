@@ -1,5 +1,6 @@
 package com.jeffrey.example.demoapp.service;
 
+import com.jeffrey.example.demoapp.config.EventStoreConfig;
 import com.jeffrey.example.demoapp.config.MongoDbConfig;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
 import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;
@@ -37,16 +38,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Import({
         MongoDbConfig.class,
         MongoEventStoreDao.class,
+        EventStoreConfig.class,
         EventStoreService.class,
+        EventStoreRetryService.class
 })
 @DataMongoTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @ActiveProfiles("test")
 @RunWith(SpringRunner.class)
 public class EventStoreServiceIT {
-
-    @Value("${eventstore.retry.message.expired.seconds:15}")
-    long messageExpiredTimeInSec;
 
     @Value("${eventstore.retry.backoff.milliseconds:30000}")
     long retryBackoffTimeInMs;
@@ -95,9 +95,9 @@ public class EventStoreServiceIT {
             throw new RuntimeException("initiate next retry with backoff period");
         };
 
-        RetryService retryService = new RetryService(retryTemplate, retryCallback);
+        EventStoreRetryService eventStoreRetryService = new EventStoreRetryService(retryTemplate);
         try {
-            retryService.execute();
+            eventStoreRetryService.execute(retryCallback);
         } catch (Exception e) { }
 
         Assert.assertEquals(MAX_RETRY, count.get());
@@ -105,7 +105,7 @@ public class EventStoreServiceIT {
 
     @Test
     public void testConcurrentRetry_noProducerAck() throws Throwable {
-        final int MAX_MESSAGE = 10;
+        final int MAX_MESSAGE = 2;
         for (int i=0; i<MAX_MESSAGE; i++) {
             eventStoreService.createEventFromMessage(MessageBuilder.withPayload("testing message " + i).build());
         }
@@ -130,7 +130,7 @@ public class EventStoreServiceIT {
             eventStoreService.fetchEventAndResend();
             throw new RuntimeException("initiate next retry with backoff period");
         };
-        RetryService retryService = new RetryService(retryTemplate, retryCallback);
+        EventStoreRetryService eventStoreRetryService = new EventStoreRetryService(retryTemplate);
 
         final int MAX_THREAD = 4;
         final CountDownLatch lock = new CountDownLatch(MAX_THREAD);
@@ -138,7 +138,7 @@ public class EventStoreServiceIT {
         for (int i=0; i<MAX_THREAD; i++) {
             executor.execute(() -> {
                 try {
-                    retryService.execute();
+                    eventStoreRetryService.execute(retryCallback);
                 } catch (Exception e) { }
                 lock.countDown();
             });
