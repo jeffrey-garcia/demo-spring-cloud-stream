@@ -78,4 +78,5 @@ public class EventStoreConfig {
             eventStoreRetryService.execute();
         }
     }
+
 }

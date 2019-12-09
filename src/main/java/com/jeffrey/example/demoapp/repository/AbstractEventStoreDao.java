@@ -2,11 +2,12 @@ package com.jeffrey.example.demoapp.repository;
 
 import com.jeffrey.example.demoapp.command.EventStoreCallbackCommand;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.time.Clock;
 
 public abstract class AbstractEventStoreDao implements EventStoreDao {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractEventStoreDao.class);
+
+    public abstract void configureClock(Clock clock);
 
     public abstract DomainEvent createEvent(String eventId, String header, String payload, String payloadClass);
 

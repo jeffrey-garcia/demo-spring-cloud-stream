@@ -74,4 +74,5 @@ public class MongoDbConfig extends AbstractMongoClientConfiguration {
         // startup using IndexOperations.
         return false;
     }
+
 }

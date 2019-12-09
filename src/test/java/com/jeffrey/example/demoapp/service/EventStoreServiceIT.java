@@ -25,6 +25,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.time.Clock;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -103,7 +105,7 @@ public class EventStoreServiceIT {
 
     @Test
     public void testConcurrentRetry_noProducerAck() throws Throwable {
-        final int MAX_MESSAGE = 2;
+        final int MAX_MESSAGE = 10;
         for (int i=0; i<MAX_MESSAGE; i++) {
             eventStoreService.createEventFromMessage(MessageBuilder.withPayload("testing message " + i).build());
         }
@@ -148,6 +150,8 @@ public class EventStoreServiceIT {
 
         Assert.assertEquals(MAX_RETRY_ATTEMPT * MAX_THREAD, count.get());
 
+        // the attempt count of each message should be equal to max retry + 1 (initial attempt) regardless of how many concurrent retry
+        // each retry operation should be atomic and isolated
         List<DomainEvent> domainEvents = eventStoreDao.findAll();
         Assert.assertEquals(MAX_MESSAGE, domainEvents.size());
         domainEvents.forEach(domainEvent -> {
@@ -156,8 +160,21 @@ public class EventStoreServiceIT {
     }
 
     @Test
-    public void testTimeZone() {
-        Assert.fail("not implemented");
+    public void testFetchingPendingEventWithTimeZone() throws IOException, InterruptedException {
+        // create an event based on GMT+8, then trigger retry operation based on GMT+9
+        eventStoreDao.configureClock(Clock.system(ZoneId.systemDefault()));
+        Message message = eventStoreService.createEventFromMessage(MessageBuilder.withPayload("testing 123").build());
+
+        // wait for message to expire before fetching
+        Thread.sleep(retryBackoffTimeInMs);
+        AtomicInteger counter = new AtomicInteger();
+
+        // simulate the fetching operation is run in a different timezone,
+        // pending event should still be retrieved if the event timestamp is persisted in UTC
+        eventStoreDao.configureClock(Clock.system(ZoneId.of("Asia/Tokyo")));
+        eventStoreDao.filterPendingProducerAckOrReturned((eventId, jsonHeaders, jsonPayload, payloadClass) -> counter.incrementAndGet());
+
+        Assert.assertEquals(1, counter.get());
     }
 
     @Test

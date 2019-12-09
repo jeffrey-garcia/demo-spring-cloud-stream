@@ -17,6 +17,7 @@ import org.springframework.util.IdGenerator;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.Map;
 
 @Service
@@ -34,6 +35,7 @@ public class EventStoreService<T> {
             EventStoreDao eventStoreDao
     ) {
         this.eventStoreDao = eventStoreDao;
+        this.eventStoreDao.configureClock(Clock.systemDefaultZone());
     }
 
     public Message<?> createEventFromMessage(Message<?> message) throws IOException {

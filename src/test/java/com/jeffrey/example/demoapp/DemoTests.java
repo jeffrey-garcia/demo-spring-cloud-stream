@@ -12,11 +12,11 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 
 import java.io.*;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class DemoTests {
 
@@ -88,11 +88,68 @@ public class DemoTests {
     }
 
     @Test
-    public void compareLocalDateTime() throws InterruptedException {
+    public void testCompareLocalDateTime() throws InterruptedException {
         LocalDateTime localDateTime1 = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
         Thread.sleep(1000);
         LocalDateTime localDateTime2 = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
         Assert.assertTrue(localDateTime2.isAfter(localDateTime1));
+    }
+
+    @Test
+    public void testCompareLocalDateTime_withDifferentTimezone() {
+        Map<String, String> zoneIdOffsetMap = new HashMap<>();
+
+        Set<String> zoneIds = ZoneId.getAvailableZoneIds();
+        for (String zoneIdString:zoneIds) {
+            ZoneId zoneId = ZoneId.of(zoneIdString);
+            ZoneOffset zoneOffset = ZonedDateTime.now(zoneId).getOffset();
+            String offset = zoneOffset.getId().replaceAll("Z", "+00:00");
+            zoneIdOffsetMap.put(zoneId.getId(), offset);
+        }
+
+        // sort the map by offset
+        Map<String, String> sortedZoneIdOffsetMap = new LinkedHashMap<>();
+        zoneIdOffsetMap.entrySet().stream()
+                .sorted(Map.Entry.<String, String>comparingByValue())
+                .forEachOrdered(e -> sortedZoneIdOffsetMap.put(e.getKey(), e.getValue()));
+
+
+        Map<String, String> filteredZoneIdOffsetMap = new LinkedHashMap<>();
+        zoneIdOffsetMap.entrySet().stream().filter(entry -> {
+           if (entry.getValue().equals("+09:00")) {
+               return true;
+           } else {
+               return false;
+           }
+        }).forEach(entry -> filteredZoneIdOffsetMap.put(entry.getKey(), entry.getValue()));
+
+//        "Europe/London"
+//        "GMT"
+//        "Asia/Bangkok"
+//        "Asia/Tokyo"
+
+//        Clock bangkokClock = Clock.system(ZoneId.of("Asia/Bangkok"));
+        Instant instantNow = Instant.now();
+
+        LocalDateTime localDateTime_bkh = LocalDateTime.ofInstant(instantNow, ZoneId.of("Asia/Bangkok"));
+        ZonedDateTime zonedDateTime_utc1 = localDateTime_bkh.atZone(ZoneId.of("Asia/Bangkok")).withZoneSameInstant(ZoneId.of("GMT"));
+
+        LocalDateTime localDateTime_tky = LocalDateTime.ofInstant(instantNow, ZoneId.of("Asia/Tokyo"));
+        ZonedDateTime zonedDateTime_utc2 = localDateTime_tky.atZone(ZoneId.of("Asia/Tokyo")).withZoneSameInstant(ZoneId.of("GMT"));
+
+        int result = zonedDateTime_utc1.compareTo(zonedDateTime_utc2);
+        Assert.assertEquals(0, result);
+    }
+
+    @Test
+    public void test() {
+        Clock clock = Clock.system(ZoneId.of("Asia/Tokyo"));
+        LocalDateTime localDataTime_tky = LocalDateTime.now(clock);
+
+        clock.withZone(ZoneId.of("Asia/Bangkok"));
+        LocalDateTime localDataTime_bkh = LocalDateTime.now(clock);
+
+        Assert.assertTrue(true);
     }
 
 }

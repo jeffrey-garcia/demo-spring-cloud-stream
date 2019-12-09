@@ -6,7 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.HashIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Document(collection = "DemoEventStoreV2") // specify the name of the collection in MongoDB
 public class DomainEvent {
@@ -29,21 +29,21 @@ public class DomainEvent {
     private String payloadClassName;
 
     @JsonProperty("writtenOn")
-    private LocalDateTime writtenOn;
+    private Instant writtenOn;
 
     @JsonProperty("attemptCount")
     private long attemptCount;
 
     @JsonProperty("returnedOn")
-    private LocalDateTime returnedOn;
+    private Instant returnedOn;
 
     @JsonProperty("producerAckOn")
-    private LocalDateTime producerAckOn;
+    private Instant producerAckOn;
 
     @JsonProperty("consumerAckOn")
-    private LocalDateTime consumerAckOn;
+    private Instant consumerAckOn;
 
-    public DomainEvent(String id, String header, String payload, String payloadClassName, LocalDateTime writtenOn) {
+    public DomainEvent(String id, String header, String payload, String payloadClassName, Instant writtenOn) {
         this.id = id;
         this.header = header;
         this.payload = payload;
@@ -74,21 +74,21 @@ public class DomainEvent {
         return payload;
     }
 
-    public LocalDateTime getWrittenOn() {
+    public Instant getWrittenOn() {
         return writtenOn;
     }
 
     public long getAttemptCount() { return attemptCount; }
 
-    public LocalDateTime getReturnedOn() {
+    public Instant getReturnedOn() {
         return returnedOn;
     }
 
-    public LocalDateTime getProducerAckOn() {
+    public Instant getProducerAckOn() {
         return producerAckOn;
     }
 
-    public LocalDateTime getConsumerAckOn() {
+    public Instant getConsumerAckOn() {
         return consumerAckOn;
     }
 

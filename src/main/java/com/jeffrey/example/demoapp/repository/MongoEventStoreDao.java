@@ -20,10 +20,9 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import static com.mongodb.client.model.Filters.*;
@@ -45,6 +44,13 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
     @Autowired
     private MongoDbConfig mongoDbConfig;
 
+    private Clock clock;
+
+    @Override
+    public void configureClock(Clock clock) {
+        this.clock = clock;
+    }
+
     @Override
     public DomainEvent createEvent(String eventId, String header, String payload, String payloadClassName) {
         DomainEvent domainEvent = new DomainEvent(
@@ -52,7 +58,7 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                 header,
                 payload,
                 payloadClassName,
-                LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault())
+                ZonedDateTime.now(clock).toInstant()
         );
         return mongoRepository.save(domainEvent);
     }
@@ -63,7 +69,7 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
         Query query = new Query();
         query.addCriteria(Criteria.where("id").is(eventId));
         Update update = new Update();
-        update.set("returnedOn", LocalDateTime.ofInstant(Instant.now(), ZoneOffset.systemDefault()));
+        update.set("returnedOn", ZonedDateTime.now(clock).toInstant());
         return mongoTemplate.findAndModify(
                 query,
                 update,
@@ -77,7 +83,7 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
         Query query = new Query();
         query.addCriteria(Criteria.where("id").is(eventId));
         Update update = new Update();
-        update.set("producerAckOn", LocalDateTime.ofInstant(Instant.now(), ZoneOffset.systemDefault()));
+        update.set("producerAckOn", ZonedDateTime.now(clock).toInstant());
         return mongoTemplate.findAndModify(
                 query,
                 update,
@@ -91,7 +97,7 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
         Query query = new Query();
         query.addCriteria(Criteria.where("id").is(eventId));
         Update update = new Update();
-        update.set("consumerAckOn", LocalDateTime.ofInstant(Instant.now(), ZoneOffset.systemDefault()));
+        update.set("consumerAckOn", ZonedDateTime.now(clock).toInstant());
         return mongoTemplate.findAndModify(
                 query,
                 update,
@@ -101,6 +107,8 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
 
     @Override
     public void filterPendingProducerAckOrReturned(EventStoreCallbackCommand callbackCommand) {
+        LOGGER.debug("filter pending event operation");
+
         MongoClient client = mongoDbConfig.mongoClient();
         String dbName = mongoDbConfig.mongoDbFactory().getDb().getName();
 
@@ -110,7 +118,8 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
 
                 // query all message that was sent at least X (messageExpiredTimeInSec) seconds ago
                 // X should NOT be less than the typical message sending timeout
-                LocalDateTime currentDateTime = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
+                Instant currentDateTime = ZonedDateTime.now(clock).toInstant();
+
                 FindIterable<Document> documents = collection.find(
                         session,
                         combine(
@@ -127,15 +136,14 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                             eq("_id", eventId),
                             combine(
                                     inc("attemptCount", +1L),
-                                    set("writtenOn", LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault())),
+                                    set("writtenOn", ZonedDateTime.now(clock).toInstant()),
                                     unset("producerAckOn"), // remove the producer ack timestamp upon resend
                                     unset("returnedOn") // remove the return timestamp upon resend
                             )
                     );
 
                     if (result.getModifiedCount() == 1) {
-                        LOGGER.debug("retry event id: {}", eventId);
-
+                        LOGGER.debug("retry callback event id: {}", eventId);
                         try {
                             callbackCommand.pendingEventFetched(
                                     eventId,
