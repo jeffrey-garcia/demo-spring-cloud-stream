@@ -1,4 +1,4 @@
-package com.jeffrey.example.util;
+package com.jeffrey.example.demoapp.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.integration.support.json.Jackson2JsonObjectMapper;

@@ -2,7 +2,7 @@ package com.jeffrey.example.demoapp.service;
 
 import com.jeffrey.example.demoapp.entity.DomainEvent;
 import com.jeffrey.example.demoapp.repository.EventStoreDao;
-import com.jeffrey.example.util.ObjectMapperFactory;
+import com.jeffrey.example.demoapp.util.ObjectMapperFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

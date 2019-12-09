@@ -3,7 +3,7 @@ package com.jeffrey.example.demoapp;
 import com.google.common.io.BaseEncoding;
 import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;
 import com.jeffrey.example.demoapp.model.DemoMessageModel;
-import com.jeffrey.example.util.ObjectMapperFactory;
+import com.jeffrey.example.demoapp.util.ObjectMapperFactory;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.amqp.core.MessageProperties;
