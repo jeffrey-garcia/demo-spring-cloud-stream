@@ -47,6 +47,11 @@ public class EventStoreConfig {
     @Bean
     @Qualifier("eventIdGenerator")
     public IdGenerator idGenerator() {
+        /**
+         * An IdGenerator that uses SecureRandom for the initial seed and Random thereafter,
+         * instead of calling UUID.randomUUID() every time as JdkIdGenerator does.
+         * This provides a better balance between securely random ids and performance.
+         */
         return new AlternativeJdkIdGenerator();
     }
 

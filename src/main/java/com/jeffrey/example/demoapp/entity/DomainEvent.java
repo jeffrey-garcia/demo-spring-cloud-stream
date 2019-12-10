@@ -1,7 +1,9 @@
 package com.jeffrey.example.demoapp.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.hash.Hashing;
+import com.jeffrey.example.demoapp.util.ObjectMapperFactory;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.HashIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -11,9 +13,22 @@ import java.time.Instant;
 @Document(collection = "DemoEventStoreV2") // specify the name of the collection in MongoDB
 public class DomainEvent {
 
-    // Hashed indexes allow hash based sharding to partition data across sharded cluster.
-    // Using hashed field values to shard collections results in a more random distribution.
-    // Since ObjectId increases monotonically
+    /**
+     * The shard key to distribute the collection’s documents across shards.
+     *
+     * Hashed Sharding involves computing a hash of the shard key field’s value.
+     * Each chunk is then assigned a range based on the hashed shard key values.
+     *
+     * Hashed indexes allow hash based sharding to partition data across sharded cluster.
+     * Using hashed field values to shard collections results in a more random distribution
+     * since MongoDB's ObjectId increases monotonically.
+     *
+     * However, hashed distribution means that ranged-based queries on the shard key are
+     * less likely to target a single shard, resulting in more cluster wide broadcast
+     * operations
+     *
+     * TODO: Isolate a specific subset of data on a specific set of shards using zone
+     */
     @HashIndexed
     @Id
     @JsonProperty("id")
@@ -59,7 +74,16 @@ public class DomainEvent {
 
     @Override
     public boolean equals(Object obj) {
-        return obj != null && obj instanceof DomainEvent && obj.hashCode() == this.hashCode();
+        return obj == this && obj != null && obj.getClass() == this.getClass() && this.toString().equals(obj.toString());
+    }
+
+    @Override
+    public String toString() {
+        try {
+            return ObjectMapperFactory.getMapper().toJson(this);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String getId() {

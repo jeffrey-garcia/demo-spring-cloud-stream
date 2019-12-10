@@ -9,7 +9,6 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
-import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,10 +143,17 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
             session.withTransaction(() -> {
                 MongoCollection<Document> collection = client.getDatabase(dbName).getCollection("DemoEventStoreV2");
 
-                // query all message that was sent at least X (messageExpiredTimeInSec) seconds ago
-                // X should NOT be less than the typical message sending timeout
+                /**
+                 * query all message that was sent at least X (messageExpiredTimeInSec) seconds ago
+                 * X should NOT be less than the typical message sending timeout
+                 */
                 Instant currentDateTime = ZonedDateTime.now(clock).toInstant();
 
+                /**
+                 * If queries do not include the shard key or the prefix of a compound shard key,
+                 * mongos performs a broadcast operation, querying all shards in the sharded cluster.
+                 * These scatter/gather queries can be long running operations.
+                 */
                 FindIterable<Document> documents = collection.find(
                         session,
                         combine(
