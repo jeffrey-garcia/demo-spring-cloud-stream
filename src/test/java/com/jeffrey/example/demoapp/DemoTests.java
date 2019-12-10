@@ -1,6 +1,7 @@
 package com.jeffrey.example.demoapp;
 
 import com.google.common.io.BaseEncoding;
+import com.jeffrey.example.demoapp.entity.DomainEvent;
 import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;
 import com.jeffrey.example.demoapp.model.DemoMessageModel;
 import com.jeffrey.example.demoapp.util.ObjectMapperFactory;
@@ -142,14 +143,26 @@ public class DemoTests {
     }
 
     @Test
-    public void test() {
-        Clock clock = Clock.system(ZoneId.of("Asia/Tokyo"));
-        LocalDateTime localDataTime_tky = LocalDateTime.now(clock);
+    public void testDomainEventBuilder() {
+        DomainEvent domainEvent1 = new DomainEvent.Builder()
+                .id("123")
+                .header("header")
+                .payload("payload")
+                .payloadType(String.class.getName())
+                .writtenOn(Instant.now())
+                .build();
 
-        clock.withZone(ZoneId.of("Asia/Bangkok"));
-        LocalDateTime localDataTime_bkh = LocalDateTime.now(clock);
+        DomainEvent domainEvent2 = new DomainEvent.Builder()
+                .id("123")
+                .header("header")
+                .payload("payload")
+                .payloadType(String.class.getName())
+                .writtenOn(Instant.now())
+                .build();
 
-        Assert.assertTrue(true);
+
+        Assert.assertTrue(domainEvent1.hashCode() == domainEvent2.hashCode());
+        Assert.assertFalse(domainEvent1.equals(domainEvent2));
     }
 
 }

@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.Map;
 
 @Service
-public class EventStoreService<T> {
+public class EventStoreService<T,R> {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreService.class);
 
     @Value("${eventstore.retry.autoStart:true}")
@@ -50,7 +50,7 @@ public class EventStoreService<T> {
         this.eventStoreRetryService = eventStoreRetryService;
     }
 
-    public Message<?> createEventFromMessage(Message<?> message) throws IOException {
+    public Message<?> createEventFromMessage(Message<?> message, String outputChannelName) throws IOException {
         String eventId = eventIdGenerator.generateId().toString();
 
         // The MessageHeaders.ID and MessageHeaders.TIMESTAMP are read-only headers and cannot be overridden
@@ -65,7 +65,7 @@ public class EventStoreService<T> {
         String jsonPayload = ObjectMapperFactory.getMapper().toJson(message.getPayload());
         String payloadClassName = message.getPayload().getClass().getName();
 
-        eventStoreDao.createEvent(eventId, jsonHeader, jsonPayload, payloadClassName);
+        eventStoreDao.createEvent(eventId, jsonHeader, jsonPayload, payloadClassName, outputChannelName);
         return message;
     }
 
@@ -91,38 +91,34 @@ public class EventStoreService<T> {
     }
 
     public void fetchEventAndResend() {
-        eventStoreDao.filterPendingProducerAckOrReturned((eventId, jsonHeaders, jsonPayload, payloadClass) -> {
-            Message<?> message = createMessageFromEvent(eventId, jsonHeaders, jsonPayload, payloadClass);
-            sendMessage(message);
+        eventStoreDao.filterPendingProducerAckOrReturned((domainEvent) -> {
+            Message<?> message = createMessageFromEvent(domainEvent);
+            sendMessage(message, domainEvent.getChannel());
         });
     }
 
-    protected Message<?> createMessageFromEvent(String eventId, String jsonHeader, String jsonPayload, Class<T> payloadClass) throws IOException {
-        Map headers = ObjectMapperFactory.getMapper().fromJson(jsonHeader, Map.class);
-        headers.put("eventId", eventId);
+    protected Message<?> createMessageFromEvent(DomainEvent domainEvent) throws IOException, ClassNotFoundException {
+        Map headers = ObjectMapperFactory.getMapper().fromJson(domainEvent.getHeader(), Map.class);
+        headers.put("eventId", domainEvent.getId());
 
-        T payload = ObjectMapperFactory.getMapper().fromJson(jsonPayload, payloadClass);
+        Class<T> payloadClass = (Class<T>) Class.forName(domainEvent.getPayloadType());
+        T payload = ObjectMapperFactory.getMapper().fromJson(domainEvent.getPayload(), payloadClass);
         Message message = MessageBuilder.withPayload(payload).copyHeaders(headers).build();
 
         LOGGER.debug("send message: {}", message);
         return message;
     }
 
-    protected void sendMessage(Message<?> message) {
+    protected void sendMessage(Message<?> message, String outputChannelBeanName) {
         String[] bindableBeanNames = applicationContext.getBeanNamesForType(Bindable.class);
         LOGGER.debug("bindable beans: {}", bindableBeanNames);
 
-        // TODO: should only send to the specific output channel
-        for (String bindableBeanName:bindableBeanNames) {
-            Bindable bindable = (Bindable) applicationContext.getBean(bindableBeanName);
-            for (String binding:bindable.getOutputs()) {
-                Object bindableBean = applicationContext.getBean(binding);
-                if (bindableBean instanceof AbstractMessageChannel) {
-                    AbstractMessageChannel abstractMessageChannel = (AbstractMessageChannel) bindableBean;
-                    LOGGER.debug("sending message to output message channel: {}", abstractMessageChannel.getFullChannelName());
-                    abstractMessageChannel.send(message);
-                }
-            }
+        // should only send to the specific output channel
+        Object outputChannelBean = applicationContext.getBean(outputChannelBeanName);
+        if (outputChannelBean != null && outputChannelBean instanceof AbstractMessageChannel) {
+            AbstractMessageChannel abstractMessageChannel = (AbstractMessageChannel) outputChannelBean;
+            LOGGER.debug("sending message to output message channel: {}", abstractMessageChannel.getFullChannelName());
+            abstractMessageChannel.send(message);
         }
     }
 

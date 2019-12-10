@@ -79,14 +79,18 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
     }
 
     @Override
-    public DomainEvent createEvent(String eventId, String header, String payload, String payloadClassName) {
-        DomainEvent domainEvent = new DomainEvent(
-                eventId,
-                header,
-                payload,
-                payloadClassName,
-                ZonedDateTime.now(clock).toInstant()
-        );
+    public DomainEvent createEvent(
+            String eventId, String header, String payload, String payloadClassName, String outoutChannelName)
+    {
+        DomainEvent domainEvent = new DomainEvent.Builder()
+                .id(eventId)
+                .channel(outoutChannelName)
+                .header(header)
+                .payload(payload)
+                .payloadType(payloadClassName)
+                .writtenOn(ZonedDateTime.now(clock).toInstant())
+                .build();
+
         return mongoRepository.save(domainEvent);
     }
 
@@ -164,7 +168,12 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                 );
 
                 for (Document document:documents) {
-                    String eventId = document.get("_id", String.class);
+                    final String eventId = document.get("_id", String.class);
+                    final String outputChannelBeanName = document.get("channel", String.class);
+                    final String header = document.get("header", String.class);
+                    final String payload = document.get("payload", String.class);
+                    final String payloadClassName = document.get("payloadType", String.class);
+
                     UpdateResult result = collection.updateOne(
                             session,
                             eq("_id", eventId),
@@ -178,13 +187,17 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
 
                     if (result.getModifiedCount() == 1) {
                         LOGGER.debug("retry callback event id: {}", eventId);
+
+                        DomainEvent domainEvent = new DomainEvent.Builder()
+                                .id(eventId)
+                                .channel(outputChannelBeanName)
+                                .header(header)
+                                .payload(payload)
+                                .payloadType(payloadClassName)
+                                .build();
+
                         try {
-                            callbackCommand.pendingEventFetched(
-                                    eventId,
-                                    document.get("header", String.class),
-                                    document.get("payload", String.class),
-                                    Class.forName(document.get("payloadClassName", String.class))
-                            );
+                            callbackCommand.pendingEventFetched(domainEvent);
                         } catch (Exception e) {
                             // one event fail shouldn't cancel the entire retry operation
                             LOGGER.error(e.getMessage(), e);
@@ -196,7 +209,7 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
             });
 
         } catch (RuntimeException e) {
-            LOGGER.error("abort tx: {}", e.getMessage());
+            LOGGER.error("error processing pending event: {}", e.getMessage());
             throw e;
         }
     }

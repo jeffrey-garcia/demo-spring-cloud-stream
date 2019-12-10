@@ -12,7 +12,7 @@ public interface EventStoreDao {
 
     void configureClock(Clock clock);
 
-    DomainEvent createEvent(String eventId, String header, String payload, String payloadClass);
+    DomainEvent createEvent(String eventId, String header, String payload, String payloadClass, String outputChannelName);
 
     DomainEvent updateReturnedTimestamp(String eventId);
 

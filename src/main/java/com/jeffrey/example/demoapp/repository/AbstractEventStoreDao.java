@@ -11,7 +11,8 @@ public abstract class AbstractEventStoreDao implements EventStoreDao {
 
     public abstract void configureClock(Clock clock);
 
-    public abstract DomainEvent createEvent(String eventId, String header, String payload, String payloadClass);
+    public abstract DomainEvent createEvent(
+            String eventId, String header, String payload, String payloadClassName, String outputChannelName);
 
     public abstract DomainEvent updateReturnedTimestamp(String eventId);
 

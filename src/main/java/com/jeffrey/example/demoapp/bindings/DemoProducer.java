@@ -30,7 +30,7 @@ public class DemoProducer {
 
     @Publisher(channel = Source.OUTPUT)
     public void sendMessage(Message<?> message) throws IOException {
-        message = eventStoreService.createEventFromMessage(message);
+        message = eventStoreService.createEventFromMessage(message, Source.OUTPUT);
         boolean result = source.output().send(message);
         LOGGER.debug("send result: {}", result);
     }

@@ -34,14 +34,18 @@ public class DomainEvent {
     @JsonProperty("id")
     private String id;
 
+    @JsonProperty("channel")
+    private String channel;
+
+
     @JsonProperty("header")
     private String header;
 
     @JsonProperty("payload")
     private String payload;
 
-    @JsonProperty("payloadClassName")
-    private String payloadClassName;
+    @JsonProperty("payloadType")
+    private String payloadType;
 
     @JsonProperty("writtenOn")
     private Instant writtenOn;
@@ -58,14 +62,7 @@ public class DomainEvent {
     @JsonProperty("consumerAckOn")
     private Instant consumerAckOn;
 
-    public DomainEvent(String id, String header, String payload, String payloadClassName, Instant writtenOn) {
-        this.id = id;
-        this.header = header;
-        this.payload = payload;
-        this.payloadClassName = payloadClassName;
-        this.writtenOn = writtenOn;
-        this.attemptCount = 1L;
-    }
+    private DomainEvent() {}
 
     @Override
     public int hashCode() {
@@ -89,6 +86,8 @@ public class DomainEvent {
     public String getId() {
         return id;
     }
+
+    public String getChannel() { return channel; }
 
     public String getHeader() {
         return header;
@@ -116,7 +115,88 @@ public class DomainEvent {
         return consumerAckOn;
     }
 
-    public String getPayloadClassName() {
-        return payloadClassName;
+    public String getPayloadType() {
+        return payloadType;
     }
+
+    public static class Builder {
+        private String id;
+        private String channel;
+        private String header;
+        private String payload;
+        private String payloadType;
+        private Instant writtenOn;
+        private long attemptCount;
+        private Instant returnedOn;
+        private Instant producerAckOn;
+        private Instant consumerAckOn;
+
+        public Builder() {}
+
+        public Builder id(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder channel(String channel) {
+            this.channel = channel;
+            return this;
+        }
+
+        public Builder header(String header) {
+            this.header = header;
+            return this;
+        }
+
+        public Builder payload(String payload) {
+            this.payload = payload;
+            return this;
+        }
+
+        public Builder payloadType(String payloadType) {
+            this.payloadType = payloadType;
+            return this;
+        }
+
+        public Builder writtenOn(Instant writtenOn) {
+            this.writtenOn = writtenOn;
+            return this;
+        }
+
+        public Builder attemptCount(long attemptCount) {
+            this.attemptCount = attemptCount;
+            return this;
+        }
+
+        public Builder returnedOn(Instant returnedOn) {
+            this.returnedOn = returnedOn;
+            return this;
+        }
+
+        public Builder producerAckOn(Instant producerAckOn) {
+            this.producerAckOn = producerAckOn;
+            return this;
+        }
+
+        public Builder consumerAckOn(Instant consumerAckOn) {
+            this.consumerAckOn = consumerAckOn;
+            return this;
+        }
+
+        public DomainEvent build() {
+            DomainEvent domainEvent = new DomainEvent();
+            domainEvent.id = this.id;
+            domainEvent.channel = this.channel;
+            domainEvent.header = this.header;
+            domainEvent.payload = this.payload;
+            domainEvent.payloadType = this.payloadType;
+            domainEvent.writtenOn = this.writtenOn;
+            domainEvent.attemptCount = this.attemptCount;
+            domainEvent.returnedOn = this.returnedOn;
+            domainEvent.producerAckOn = this.producerAckOn;
+            domainEvent.consumerAckOn = this.consumerAckOn;
+            return domainEvent;
+        }
+    }
+
 }

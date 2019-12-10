@@ -1,11 +1,13 @@
 package com.jeffrey.example.demoapp.config;
 
+import com.jeffrey.example.demoapp.aop.EventStoreAspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.AlwaysRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
@@ -16,6 +18,7 @@ import java.time.Clock;
 import java.time.ZoneId;
 
 @Configuration
+@EnableAspectJAutoProxy
 public class EventStoreConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreConfig.class);
 
@@ -53,6 +56,12 @@ public class EventStoreConfig {
          * This provides a better balance between securely random ids and performance.
          */
         return new AlternativeJdkIdGenerator();
+    }
+
+    @Bean
+    @Qualifier("eventStoreAspect")
+    public EventStoreAspect eventStoreAspect() {
+        return new EventStoreAspect();
     }
 
 }

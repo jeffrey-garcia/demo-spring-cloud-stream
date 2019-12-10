@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.cloud.stream.messaging.Source;
 import org.springframework.context.annotation.Import;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
@@ -65,8 +66,8 @@ public class EventStoreServiceIT {
     @Test
     public void testCreateEvent() throws IOException {
         Message message = MessageBuilder.withPayload("testing message").build();
-        eventStoreService.createEventFromMessage(message);
-        eventStoreService.createEventFromMessage(message);
+        eventStoreService.createEventFromMessage(message, Source.OUTPUT);
+        eventStoreService.createEventFromMessage(message, Source.OUTPUT);
         Assert.assertEquals(2, eventStoreDao.findAll().size());
     }
 
@@ -107,7 +108,8 @@ public class EventStoreServiceIT {
     public void testConcurrentRetry_noProducerAck() throws Throwable {
         final int MAX_MESSAGE = 2;
         for (int i=0; i<MAX_MESSAGE; i++) {
-            eventStoreService.createEventFromMessage(MessageBuilder.withPayload("testing message " + i).build());
+            eventStoreService.createEventFromMessage(
+                    MessageBuilder.withPayload("testing message " + i).build(), Source.OUTPUT);
         }
         Thread.sleep(retryBackoffTimeInMs);
 
@@ -163,7 +165,8 @@ public class EventStoreServiceIT {
     public void testFetchingPendingEventWithTimeZone() throws IOException, InterruptedException {
         // create an event based on GMT+8, then trigger retry operation based on GMT+9
         eventStoreDao.configureClock(Clock.system(ZoneId.systemDefault()));
-        Message message = eventStoreService.createEventFromMessage(MessageBuilder.withPayload("testing 123").build());
+        Message message = eventStoreService.createEventFromMessage(
+                MessageBuilder.withPayload("testing 123").build(), Source.OUTPUT);
 
         // wait for message to expire before fetching
         Thread.sleep(retryBackoffTimeInMs);
@@ -172,7 +175,7 @@ public class EventStoreServiceIT {
         // simulate the fetching operation is run in a different timezone,
         // pending event should still be retrieved if the event timestamp is persisted in UTC
         eventStoreDao.configureClock(Clock.system(ZoneId.of("Asia/Tokyo")));
-        eventStoreDao.filterPendingProducerAckOrReturned((eventId, jsonHeaders, jsonPayload, payloadClass) -> counter.incrementAndGet());
+        eventStoreDao.filterPendingProducerAckOrReturned((domainEvent) -> counter.incrementAndGet());
 
         Assert.assertEquals(1, counter.get());
     }
@@ -186,16 +189,17 @@ public class EventStoreServiceIT {
     public void testMessageSerializing() throws IOException, ClassNotFoundException {
         DemoInsurancePolicy policy = new DemoInsurancePolicy(UUID.randomUUID().toString(), "Steve Rogers");
         DemoMessageModel messageModel = new DemoMessageModel(policy);
-        Message message = eventStoreService.createEventFromMessage(MessageBuilder.withPayload(messageModel).build());
+        Message message = eventStoreService.createEventFromMessage(
+                MessageBuilder.withPayload(messageModel).build(), Source.OUTPUT);
 
         DomainEvent domainEvent = eventStoreDao.findAll().get(0);
-        String eventId = domainEvent.getId();
-        String jsonHeaders = domainEvent.getHeader();
-        String jsonPayload = domainEvent.getPayload();
-        String payloadClassName = domainEvent.getPayloadClassName();
+//        String eventId = domainEvent.getId();
+//        String jsonHeaders = domainEvent.getHeader();
+//        String jsonPayload = domainEvent.getPayload();
+//        String payloadClassName = domainEvent.getPayloadClassName();
+//        Class payloadClass = Class.forName(payloadClassName);
 
-        Class payloadClass = Class.forName(payloadClassName);
-        Message _message = eventStoreService.createMessageFromEvent(eventId, jsonHeaders, jsonPayload, payloadClass);
+        Message _message = eventStoreService.createMessageFromEvent(domainEvent);
 
         Assert.assertTrue(_message.getPayload() instanceof DemoMessageModel);
         Assert.assertEquals(policy.getPolicyId(), ((DemoMessageModel)_message.getPayload()).getDemoInsurancePolicy().getPolicyId());
