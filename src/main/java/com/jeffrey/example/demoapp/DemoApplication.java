@@ -12,9 +12,10 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 
-@EnableEventStore
+
 //@EnableChannelInterceptor(useDefault = false)
 //@EnableChannelInterceptor
+@EnableEventStore
 @EnableDiscoveryClient
 @SpringBootApplication
 public class DemoApplication {

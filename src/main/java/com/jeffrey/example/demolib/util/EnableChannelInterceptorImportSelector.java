@@ -35,7 +35,7 @@ public class EnableChannelInterceptorImportSelector extends SpringFactoryImportS
 
     @Override
     protected boolean isEnabled() {
-        return this.getEnvironment().getProperty("com.example.channel.interceptor", Boolean.class, Boolean.TRUE);
+        return this.getEnvironment().getProperty("com.jeffrey.example.messaging", Boolean.class, Boolean.TRUE);
     }
 
     @Override

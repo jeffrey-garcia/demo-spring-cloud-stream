@@ -41,7 +41,7 @@ public class EnableEventStoreImportSelector extends SpringFactoryImportSelector<
 
     @Override
     protected boolean isEnabled() {
-        return this.getEnvironment().getProperty("com.example.eventstore", Boolean.class, Boolean.TRUE);
+        return this.getEnvironment().getProperty("com.jeffrey.example.eventstore", Boolean.class, Boolean.TRUE);
     }
 
     @Override
