@@ -1,12 +1,12 @@
-package com.jeffrey.example.demoapp.service;
+package com.jeffrey.example.demolib.eventstore.service;
 
-import com.jeffrey.example.demoapp.config.EventStoreConfig;
-import com.jeffrey.example.demoapp.config.MongoDbConfig;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
 import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;
 import com.jeffrey.example.demoapp.model.DemoMessageModel;
-import com.jeffrey.example.demoapp.repository.EventStoreDao;
-import com.jeffrey.example.demoapp.repository.MongoEventStoreDao;
+import com.jeffrey.example.demolib.eventstore.config.EventStoreConfig;
+import com.jeffrey.example.demolib.eventstore.config.MongoDbConfig;
+import com.jeffrey.example.demolib.eventstore.repository.EventStoreDao;
+import com.jeffrey.example.demolib.eventstore.repository.MongoEventStoreDao;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

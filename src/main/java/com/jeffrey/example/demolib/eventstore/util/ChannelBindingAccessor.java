@@ -1,4 +1,4 @@
-package com.jeffrey.example.demoapp.util;
+package com.jeffrey.example.demolib.eventstore.util;
 
 import com.google.common.collect.ImmutableMap;
 import org.springframework.cloud.stream.binding.Bindable;

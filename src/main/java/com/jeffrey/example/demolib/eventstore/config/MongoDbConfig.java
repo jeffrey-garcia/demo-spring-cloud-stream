@@ -1,4 +1,4 @@
-package com.jeffrey.example.demoapp.config;
+package com.jeffrey.example.demolib.eventstore.config;
 
 import com.mongodb.*;
 import com.mongodb.client.MongoClient;

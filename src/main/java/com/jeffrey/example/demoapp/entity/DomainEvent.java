@@ -3,7 +3,7 @@ package com.jeffrey.example.demoapp.entity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.hash.Hashing;
-import com.jeffrey.example.demoapp.util.ObjectMapperFactory;
+import com.jeffrey.example.demolib.eventstore.util.ObjectMapperFactory;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.HashIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;

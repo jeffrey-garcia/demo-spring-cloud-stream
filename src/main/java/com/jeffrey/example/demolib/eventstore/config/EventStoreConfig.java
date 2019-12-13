@@ -1,6 +1,6 @@
-package com.jeffrey.example.demoapp.config;
+package com.jeffrey.example.demolib.eventstore.config;
 
-import com.jeffrey.example.demoapp.aop.EventStoreAspect;
+import com.jeffrey.example.demolib.eventstore.aop.EventStoreAspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;

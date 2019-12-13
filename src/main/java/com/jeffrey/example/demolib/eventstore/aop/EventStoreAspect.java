@@ -1,7 +1,7 @@
-package com.jeffrey.example.demoapp.aop;
+package com.jeffrey.example.demolib.eventstore.aop;
 
 import com.google.common.collect.ImmutableMap;
-import com.jeffrey.example.demoapp.service.EventStoreService;
+import com.jeffrey.example.demolib.eventstore.service.EventStoreService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;

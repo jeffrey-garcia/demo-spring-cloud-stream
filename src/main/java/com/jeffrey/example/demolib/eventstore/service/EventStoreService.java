@@ -1,10 +1,10 @@
-package com.jeffrey.example.demoapp.service;
+package com.jeffrey.example.demolib.eventstore.service;
 
 import com.google.common.collect.ImmutableMap;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
-import com.jeffrey.example.demoapp.repository.EventStoreDao;
-import com.jeffrey.example.demoapp.util.ChannelBindingAccessor;
-import com.jeffrey.example.demoapp.util.ObjectMapperFactory;
+import com.jeffrey.example.demolib.eventstore.repository.EventStoreDao;
+import com.jeffrey.example.demolib.eventstore.util.ChannelBindingAccessor;
+import com.jeffrey.example.demolib.eventstore.util.ObjectMapperFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

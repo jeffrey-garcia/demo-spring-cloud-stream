@@ -1,8 +1,8 @@
-package com.jeffrey.example.demoapp.repository;
+package com.jeffrey.example.demolib.eventstore.repository;
 
 import com.google.common.collect.Iterables;
-import com.jeffrey.example.demoapp.command.EventStoreCallbackCommand;
-import com.jeffrey.example.demoapp.config.MongoDbConfig;
+import com.jeffrey.example.demolib.eventstore.command.EventStoreCallbackCommand;
+import com.jeffrey.example.demolib.eventstore.config.MongoDbConfig;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;

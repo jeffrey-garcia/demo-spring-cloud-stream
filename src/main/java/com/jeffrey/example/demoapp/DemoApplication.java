@@ -1,34 +1,36 @@
 package com.jeffrey.example.demoapp;
 
-import com.jeffrey.example.demoapp.entity.DomainEvent;
-import com.jeffrey.example.demolib.annotation.EnableChannelInterceptor;
-import com.jeffrey.example.demolib.command.ChannelInterceptCommand;
-import com.jeffrey.example.demolib.service.ChannelInterceptorService;
+import com.jeffrey.example.demolib.eventstore.config.EventStoreConfig;
+import com.jeffrey.example.demolib.eventstore.config.MongoDbConfig;
+import com.jeffrey.example.demolib.eventstore.repository.EventStoreDao;
+import com.jeffrey.example.demolib.eventstore.repository.MongoEventStoreDao;
+import com.jeffrey.example.demolib.eventstore.repository.MongoEventStoreRepository;
+import com.jeffrey.example.demolib.eventstore.service.EventStoreRetryService;
+import com.jeffrey.example.demolib.eventstore.service.EventStoreService;
+import com.jeffrey.example.demolib.eventstore.util.ChannelBindingAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.stream.config.BinderProperties;
-import org.springframework.cloud.stream.config.BindingProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.event.EventListener;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.index.IndexOperations;
-import org.springframework.data.mongodb.core.index.IndexResolver;
-import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver;
-import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
-import org.springframework.messaging.Message;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-
+@Import({
+		ChannelBindingAccessor.class,
+		MongoDbConfig.class,
+		MongoEventStoreDao.class,
+		EventStoreConfig.class,
+		EventStoreService.class,
+		EventStoreRetryService.class
+})
+@EnableMongoRepositories("com.jeffrey.example.demolib.eventstore.repository")
 //@EnableChannelInterceptor(useDefault = false)
 //@EnableChannelInterceptor
 @EnableDiscoveryClient

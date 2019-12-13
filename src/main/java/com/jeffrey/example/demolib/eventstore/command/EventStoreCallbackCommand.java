@@ -1,4 +1,4 @@
-package com.jeffrey.example.demoapp.command;
+package com.jeffrey.example.demolib.eventstore.command;
 
 import com.jeffrey.example.demoapp.entity.DomainEvent;
 

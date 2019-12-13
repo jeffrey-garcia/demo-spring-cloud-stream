@@ -1,4 +1,4 @@
-package com.jeffrey.example.demoapp.service;
+package com.jeffrey.example.demolib.eventstore.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
