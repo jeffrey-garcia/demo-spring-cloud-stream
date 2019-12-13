@@ -99,6 +99,7 @@ spring:
                 publisherConfirms: true
                 publisherReturns: true
 
+# event-store specific configuration
 eventstore:
   retry:
     autoStart: true

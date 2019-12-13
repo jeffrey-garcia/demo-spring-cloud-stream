@@ -1,10 +1,12 @@
 package com.jeffrey.example.demoapp;
 
 import com.google.common.io.BaseEncoding;
-import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
+
 import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;
 import com.jeffrey.example.demoapp.model.DemoMessageModel;
-import com.jeffrey.example.demolib.eventstore.util.ObjectMapperFactory;
+
+import com.manulife.ap.core.eventstore.entity.DomainEvent;
+import com.manulife.ap.core.eventstore.util.ObjectMapperFactory;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.amqp.core.MessageProperties;
