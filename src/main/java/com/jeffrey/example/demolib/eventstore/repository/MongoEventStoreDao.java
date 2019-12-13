@@ -30,6 +30,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.*;
@@ -121,6 +122,16 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                 update,
                 new FindAndModifyOptions().returnNew(true),
                 DomainEvent.class);
+    }
+
+    @Override
+    public boolean hasConsumedTimeStamp(String eventId) {
+        Optional<DomainEvent> domainEvent = mongoRepository.findById(eventId);
+        if (domainEvent.isPresent()) {
+            return domainEvent.get().getConsumerAckOn() != null;
+        } else {
+            throw new RuntimeException("event not found: " + eventId);
+        }
     }
 
     @Override

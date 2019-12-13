@@ -8,10 +8,12 @@ import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.integration.amqp.support.NackedAmqpMessageException;
 import org.springframework.integration.amqp.support.ReturnedAmqpMessageException;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageDeliveryException;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.support.ErrorMessage;
 import org.springframework.util.StringUtils;
@@ -30,12 +32,49 @@ public class EventStoreAspect {
             Message<?> message)
     throws Throwable {
         String outputChannelBeanName = StringUtils.isEmpty(publisher.channel()) ? publisher.value() : publisher.channel();
-        LOGGER.debug("channel bean name: {} ", outputChannelBeanName);
+        LOGGER.debug("output channel name: {} ", outputChannelBeanName);
         ImmutableMap<String,String> confirmAckChannelList = eventStoreService.getProducerChannelsWithServiceActivatorsMap();
         if (!StringUtils.isEmpty(outputChannelBeanName) && confirmAckChannelList.get(outputChannelBeanName) != null) {
             message = eventStoreService.createEventFromMessage(message, outputChannelBeanName);
         }
         return proceedingJoinPoint.proceed(new Object[] {message});
+    }
+
+    @Around("@annotation(streamListener)")
+    public void interceptConsumer(
+            ProceedingJoinPoint proceedingJoinPoint,
+            StreamListener streamListener
+    ) throws Throwable {
+        String inputChannelName = streamListener.value();
+        LOGGER.debug("input channel name: {} ", inputChannelName);
+
+        // lookup eventId from header
+        String eventId = null;
+        Object[] args = proceedingJoinPoint.getArgs();
+        if (args!=null && args.length>0) {
+            Class<?>[] classes = new Class[args.length];
+            for (int i=0; i<args.length; i++) {
+                if (args[i] == null) continue;
+                classes[i] = args[i].getClass();
+                if (classes[i].getName().equals(MessageHeaders.class.getName())) {
+                    eventId = ((MessageHeaders)args[i]).get("eventId", String.class);
+                    break;
+                }
+            }
+        }
+
+        if (!StringUtils.isEmpty(eventId)) {
+            // add deduplication logic here
+            if (!eventStoreService.hasEventBeenConsumed(eventId)) {
+                proceedingJoinPoint.proceed(args);
+                LOGGER.debug("message consumed, eventId: {}", eventId);
+                eventStoreService.updateEventAsConsumed(eventId);
+            } else {
+                LOGGER.warn("event: {} has been consumed, skipping", eventId);
+            }
+        } else {
+            proceedingJoinPoint.proceed(args);
+        }
     }
 
     @Around("@annotation(serviceActivator) && args(message)")

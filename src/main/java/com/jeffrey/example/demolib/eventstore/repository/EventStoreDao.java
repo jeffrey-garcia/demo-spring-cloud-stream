@@ -18,6 +18,8 @@ public interface EventStoreDao {
 
     DomainEvent updateProducedTimestamp(String eventId);
 
+    boolean hasConsumedTimeStamp(String eventId);
+
     DomainEvent updateConsumedTimestamp(String eventId);
 
     void filterPendingProducerAckOrReturned(EventStoreCallbackCommand callbackCommand);

@@ -91,6 +91,13 @@ public class EventStoreService<T> {
         return eventStoreDao.updateProducedTimestamp(eventId);
     }
 
+    public boolean hasEventBeenConsumed(String eventId) throws NullPointerException {
+        if (StringUtils.isEmpty(eventId)) {
+            throw new NullPointerException("eventId should not be null");
+        }
+        return eventStoreDao.hasConsumedTimeStamp(eventId);
+    }
+
     public DomainEvent updateEventAsConsumed(String eventId) throws NullPointerException {
         if (StringUtils.isEmpty(eventId)) {
             throw new NullPointerException("eventId should not be null");
@@ -113,7 +120,7 @@ public class EventStoreService<T> {
         T payload = ObjectMapperFactory.getMapper().fromJson(domainEvent.getPayload(), payloadClass);
         Message message = MessageBuilder.withPayload(payload).copyHeaders(headers).build();
 
-        LOGGER.debug("send message: {}", message);
+        LOGGER.debug("assemble message: {}", message);
         return message;
     }
 

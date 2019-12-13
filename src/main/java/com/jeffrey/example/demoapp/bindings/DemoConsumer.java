@@ -114,9 +114,7 @@ public class DemoConsumer {
             // simulate any un-expected exception thrown in the business logic
             // throw new Exception("dummy exception!");
 
-            String eventId = headers.get("eventId", String.class);
-            LOGGER.debug("message consumed, eventId: {}", eventId);
-            eventStoreService.updateEventAsConsumed(eventId);
+            LOGGER.debug("message processing finish");
 
         } catch (Exception e) {
             /**

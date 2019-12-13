@@ -18,6 +18,8 @@ public abstract class AbstractEventStoreDao implements EventStoreDao {
 
     public abstract DomainEvent updateProducedTimestamp(String eventId);
 
+    public abstract boolean hasConsumedTimeStamp(String eventId);
+
     public abstract DomainEvent updateConsumedTimestamp(String eventId);
 
     public abstract void filterPendingProducerAckOrReturned(EventStoreCallbackCommand callbackCommand);
