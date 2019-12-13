@@ -1,12 +1,13 @@
 package com.jeffrey.example.demolib.eventstore.service;
 
-import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;
 import com.jeffrey.example.demoapp.model.DemoMessageModel;
 import com.jeffrey.example.demolib.eventstore.config.EventStoreConfig;
 import com.jeffrey.example.demolib.eventstore.config.MongoDbConfig;
+import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 import com.jeffrey.example.demolib.eventstore.repository.EventStoreDao;
 import com.jeffrey.example.demolib.eventstore.repository.MongoEventStoreDao;
+import com.jeffrey.example.demolib.eventstore.util.ChannelBindingAccessor;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.cloud.stream.messaging.Source;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
@@ -24,6 +26,7 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -37,6 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Import({
+        ChannelBindingAccessor.class,
         MongoDbConfig.class,
         MongoEventStoreDao.class,
         EventStoreConfig.class,
@@ -47,6 +51,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @ActiveProfiles("test")
 @RunWith(SpringRunner.class)
+@ContextConfiguration(classes = com.jeffrey.example.demoapp.DemoApplication.class)
+@ComponentScan(basePackages = "com.jeffrey.example.demoapp.bindings") // required by ChannelBindingAccessor
 public class EventStoreServiceIT {
 
     @Value("${eventstore.retry.backoff.milliseconds:30000}")
@@ -193,12 +199,6 @@ public class EventStoreServiceIT {
                 MessageBuilder.withPayload(messageModel).build(), Source.OUTPUT);
 
         DomainEvent domainEvent = eventStoreDao.findAll().get(0);
-//        String eventId = domainEvent.getId();
-//        String jsonHeaders = domainEvent.getHeader();
-//        String jsonPayload = domainEvent.getPayload();
-//        String payloadClassName = domainEvent.getPayloadClassName();
-//        Class payloadClass = Class.forName(payloadClassName);
-
         Message _message = eventStoreService.createMessageFromEvent(domainEvent);
 
         Assert.assertTrue(_message.getPayload() instanceof DemoMessageModel);
