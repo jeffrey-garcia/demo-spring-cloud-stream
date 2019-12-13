@@ -1,6 +1,7 @@
 package com.jeffrey.example.demolib.eventstore.command;
 
-import com.jeffrey.example.demoapp.entity.DomainEvent;
+
+import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 
 @FunctionalInterface
 public interface EventStoreCallbackCommand {

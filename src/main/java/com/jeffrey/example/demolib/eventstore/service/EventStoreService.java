@@ -1,7 +1,7 @@
 package com.jeffrey.example.demolib.eventstore.service;
 
 import com.google.common.collect.ImmutableMap;
-import com.jeffrey.example.demoapp.entity.DomainEvent;
+import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 import com.jeffrey.example.demolib.eventstore.repository.EventStoreDao;
 import com.jeffrey.example.demolib.eventstore.util.ChannelBindingAccessor;
 import com.jeffrey.example.demolib.eventstore.util.ObjectMapperFactory;

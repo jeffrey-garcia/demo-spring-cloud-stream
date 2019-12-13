@@ -1,6 +1,6 @@
 package com.jeffrey.example.demolib.eventstore.service;
 
-import com.jeffrey.example.demoapp.entity.DomainEvent;
+import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;
 import com.jeffrey.example.demoapp.model.DemoMessageModel;
 import com.jeffrey.example.demolib.eventstore.config.EventStoreConfig;

@@ -3,7 +3,7 @@ package com.jeffrey.example.demolib.eventstore.repository;
 import com.google.common.collect.Iterables;
 import com.jeffrey.example.demolib.eventstore.command.EventStoreCallbackCommand;
 import com.jeffrey.example.demolib.eventstore.config.MongoDbConfig;
-import com.jeffrey.example.demoapp.entity.DomainEvent;
+import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;

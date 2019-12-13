@@ -1,4 +1,4 @@
-package com.jeffrey.example.demoapp.entity;
+package com.jeffrey.example.demolib.eventstore.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;

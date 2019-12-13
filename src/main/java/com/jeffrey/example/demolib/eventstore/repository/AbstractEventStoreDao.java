@@ -1,7 +1,7 @@
 package com.jeffrey.example.demolib.eventstore.repository;
 
 import com.jeffrey.example.demolib.eventstore.command.EventStoreCallbackCommand;
-import com.jeffrey.example.demoapp.entity.DomainEvent;
+import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 
 import java.time.Clock;
 
