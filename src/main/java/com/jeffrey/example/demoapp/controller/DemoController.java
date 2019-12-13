@@ -29,8 +29,12 @@ public class DemoController {
     @GetMapping("/test1")
     public @ResponseBody ResponseEntity test1() {
         try {
-            producer.sendMessage(message("testing 1"));
-            return ResponseEntity.accepted().build();
+            boolean result = producer.sendMessage(message("testing 1"));
+            if (result) {
+                return ResponseEntity.accepted().build();
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }

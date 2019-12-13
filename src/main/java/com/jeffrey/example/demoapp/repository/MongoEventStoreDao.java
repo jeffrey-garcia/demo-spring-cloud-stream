@@ -1,5 +1,6 @@
 package com.jeffrey.example.demoapp.repository;
 
+import com.google.common.collect.Iterables;
 import com.jeffrey.example.demoapp.command.EventStoreCallbackCommand;
 import com.jeffrey.example.demoapp.config.MongoDbConfig;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
@@ -80,11 +81,11 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
 
     @Override
     public DomainEvent createEvent(
-            String eventId, String header, String payload, String payloadClassName, String outoutChannelName)
+            String eventId, String header, String payload, String payloadClassName, String outputChannelName)
     {
         DomainEvent domainEvent = new DomainEvent.Builder()
                 .id(eventId)
-                .channel(outoutChannelName)
+                .channel(outputChannelName)
                 .header(header)
                 .payload(payload)
                 .payloadType(payloadClassName)
@@ -145,6 +146,7 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
 
         try (ClientSession session = client.startSession()) {
             session.withTransaction(() -> {
+                long recordUpdatedCount = 0L;
                 MongoCollection<Document> collection = client.getDatabase(dbName).getCollection("DemoEventStoreV2");
 
                 /**
@@ -166,6 +168,7 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                                 eq("consumerAckOn", null)
                         )
                 );
+                LOGGER.debug("total no. of events eligible for retry: {}", Iterables.size(documents));
 
                 for (Document document:documents) {
                     final String eventId = document.get("_id", String.class);
@@ -198,14 +201,17 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
 
                         try {
                             callbackCommand.pendingEventFetched(domainEvent);
+                            recordUpdatedCount += result.getModifiedCount();
+
                         } catch (Exception e) {
-                            // one event fail shouldn't cancel the entire retry operation
+                            // one event fail shouldn't affect the entire retry operation
                             LOGGER.error(e.getMessage(), e);
                         }
                     }
                 }
 
-                return null;
+                LOGGER.debug("total no. of events retried: {}", recordUpdatedCount);
+                return recordUpdatedCount;
             });
 
         } catch (RuntimeException e) {

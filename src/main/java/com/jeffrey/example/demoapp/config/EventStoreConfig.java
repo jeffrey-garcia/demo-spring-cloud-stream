@@ -17,8 +17,8 @@ import org.springframework.util.IdGenerator;
 import java.time.Clock;
 import java.time.ZoneId;
 
-@Configuration
 @EnableAspectJAutoProxy
+@Configuration
 public class EventStoreConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreConfig.class);
 

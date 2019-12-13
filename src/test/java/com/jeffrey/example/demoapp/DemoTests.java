@@ -1,5 +1,6 @@
 package com.jeffrey.example.demoapp;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
 import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;

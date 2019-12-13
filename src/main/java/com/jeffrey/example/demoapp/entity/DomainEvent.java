@@ -126,7 +126,7 @@ public class DomainEvent {
         private String payload;
         private String payloadType;
         private Instant writtenOn;
-        private long attemptCount;
+        private long attemptCount = 1L; // default
         private Instant returnedOn;
         private Instant producerAckOn;
         private Instant consumerAckOn;

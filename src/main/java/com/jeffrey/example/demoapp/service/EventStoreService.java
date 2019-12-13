@@ -1,7 +1,9 @@
 package com.jeffrey.example.demoapp.service;
 
+import com.google.common.collect.ImmutableMap;
 import com.jeffrey.example.demoapp.entity.DomainEvent;
 import com.jeffrey.example.demoapp.repository.EventStoreDao;
+import com.jeffrey.example.demoapp.util.ChannelBindingAccessor;
 import com.jeffrey.example.demoapp.util.ObjectMapperFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,10 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.cloud.stream.binding.Bindable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.integration.channel.AbstractMessageChannel;
+import org.springframework.integration.handler.ServiceActivatingHandler;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.retry.RetryCallback;
@@ -22,15 +24,18 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
-public class EventStoreService<T,R> {
+public class EventStoreService<T> {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreService.class);
 
     @Value("${eventstore.retry.autoStart:true}")
     boolean autoStart;
 
     private ApplicationContext applicationContext;
+
+    private ChannelBindingAccessor channelBindingAccessor;
 
     private EventStoreRetryService eventStoreRetryService;
 
@@ -40,17 +45,19 @@ public class EventStoreService<T,R> {
 
     public EventStoreService(
             @Autowired ApplicationContext applicationContext,
+            @Autowired ChannelBindingAccessor channelBindingAccessor,
             @Autowired @Qualifier("eventIdGenerator") IdGenerator eventIdGenerator,
             @Autowired EventStoreDao eventStoreDao,
             @Autowired EventStoreRetryService eventStoreRetryService
     ) {
         this.applicationContext = applicationContext;
+        this.channelBindingAccessor = channelBindingAccessor;
         this.eventIdGenerator = eventIdGenerator;
         this.eventStoreDao = eventStoreDao;
         this.eventStoreRetryService = eventStoreRetryService;
     }
 
-    public Message<?> createEventFromMessage(Message<?> message, String outputChannelName) throws IOException {
+    public Message createEventFromMessage(Message message, String outputChannelName) throws IOException {
         String eventId = eventIdGenerator.generateId().toString();
 
         // The MessageHeaders.ID and MessageHeaders.TIMESTAMP are read-only headers and cannot be overridden
@@ -110,9 +117,6 @@ public class EventStoreService<T,R> {
     }
 
     protected void sendMessage(Message<?> message, String outputChannelBeanName) {
-        String[] bindableBeanNames = applicationContext.getBeanNamesForType(Bindable.class);
-        LOGGER.debug("bindable beans: {}", bindableBeanNames);
-
         // should only send to the specific output channel
         Object outputChannelBean = applicationContext.getBean(outputChannelBeanName);
         if (outputChannelBean != null && outputChannelBean instanceof AbstractMessageChannel) {
@@ -123,17 +127,51 @@ public class EventStoreService<T,R> {
     }
 
     @EventListener(ApplicationReadyEvent.class)
-    public void postApplicationStartup() {
+    private void postApplicationStartup() {
         eventStoreDao.initializeDb();
+
+        discoverServiceActivatingHandler();
 
         if (autoStart) {
             eventStoreRetryService.execute((RetryCallback<Void, RuntimeException>) retryContext -> {
                 LOGGER.debug("retry count: {}", retryContext.getRetryCount());
                 fetchEventAndResend();
-                // throw RuntimeException to initiate next retry
                 throw new RuntimeException("initiate next retry");
             });
         }
+    }
+
+    private ImmutableMap<String, String> producerChannelsWithServiceActivatorsMap = ImmutableMap.of();
+    private boolean errorChannelActivated = false;
+    private String errorChannelName = null;
+
+    private void discoverServiceActivatingHandler() {
+        final ImmutableMap<String, String> producerConfirmAckChannelsMap =
+                channelBindingAccessor.getAllProducerChannelsWithConfirmAck();
+
+        final ImmutableMap<String, ServiceActivatingHandler> serviceActivatingHandlerMap =
+                channelBindingAccessor.getAllServiceActivatingHandlerInputChannels();
+
+        errorChannelActivated = channelBindingAccessor.isErrorChannelEnabled(serviceActivatingHandlerMap);
+        errorChannelName = channelBindingAccessor.getServiceActivatingHandlerErrorChannel(serviceActivatingHandlerMap);
+
+        producerChannelsWithServiceActivatorsMap = ImmutableMap.copyOf(
+                producerConfirmAckChannelsMap.entrySet().stream().filter((entry) -> {
+                    return serviceActivatingHandlerMap.get(entry.getValue()) != null;
+                }).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()))
+        );
+    }
+
+    public ImmutableMap<String, String> getProducerChannelsWithServiceActivatorsMap() {
+        return producerChannelsWithServiceActivatorsMap;
+    }
+
+    public boolean isErrorChannelEnabled() {
+        return errorChannelActivated;
+    }
+
+    public String getErrorChannelName() {
+        return errorChannelName;
     }
 
 }
