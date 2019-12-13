@@ -1,13 +1,6 @@
 package com.jeffrey.example.demoapp;
 
-import com.jeffrey.example.demolib.eventstore.config.EventStoreConfig;
-import com.jeffrey.example.demolib.eventstore.config.MongoDbConfig;
-import com.jeffrey.example.demolib.eventstore.repository.EventStoreDao;
-import com.jeffrey.example.demolib.eventstore.repository.MongoEventStoreDao;
-import com.jeffrey.example.demolib.eventstore.repository.MongoEventStoreRepository;
-import com.jeffrey.example.demolib.eventstore.service.EventStoreRetryService;
-import com.jeffrey.example.demolib.eventstore.service.EventStoreService;
-import com.jeffrey.example.demolib.eventstore.util.ChannelBindingAccessor;
+import com.jeffrey.example.demolib.eventstore.annotation.EnableEventStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -18,19 +11,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Import;
-import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
-@Import({
-		ChannelBindingAccessor.class,
-		MongoDbConfig.class,
-		MongoEventStoreDao.class,
-		EventStoreConfig.class,
-		EventStoreService.class,
-		EventStoreRetryService.class
-})
-@EnableMongoRepositories("com.jeffrey.example.demolib.eventstore.repository")
+@EnableEventStore
 //@EnableChannelInterceptor(useDefault = false)
 //@EnableChannelInterceptor
 @EnableDiscoveryClient
