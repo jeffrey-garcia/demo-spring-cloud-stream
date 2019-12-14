@@ -156,8 +156,22 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
         String dbName = mongoDbConfig.mongoDbFactory().getDb().getName();
 
         try (ClientSession session = client.startSession()) {
+            /**
+             * Runs a provided lambda within a transaction, auto-retrying either the commit operation
+             * or entire transaction as needed (and when the error permits) to better ensure that
+             * the transaction can complete successfully.
+             *
+             * To coordinate read and write operations with a transaction, you must pass the session
+             * to each operation in the transaction (transactions are associated with a session.)
+             * At any given time, at most one open transaction for a session.
+             *
+             * Requires at least:
+             * - MongoDB 4.0 with Replica Sets
+             * - Spring-Data-Mongo 2.2
+             * - MongoDB Java Driver 3.8
+             */
             session.withTransaction(() -> {
-                long recordUpdatedCount = 0L;
+                long retrySuccessfulCount = 0L;
                 MongoCollection<Document> collection = client.getDatabase(dbName).getCollection("DemoEventStoreV2");
 
                 /**
@@ -212,17 +226,17 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
 
                         try {
                             callbackCommand.pendingEventFetched(domainEvent);
-                            recordUpdatedCount += result.getModifiedCount();
+                            retrySuccessfulCount += result.getModifiedCount();
 
                         } catch (Exception e) {
                             // one event fail shouldn't affect the entire retry operation
-                            LOGGER.error(e.getMessage(), e);
+                            LOGGER.warn("error while sending event: {} {}", eventId, e.getMessage());
                         }
                     }
                 }
 
-                LOGGER.debug("total no. of events retried: {}", recordUpdatedCount);
-                return recordUpdatedCount;
+                LOGGER.debug("total no. of successful retry: {}", retrySuccessfulCount);
+                return retrySuccessfulCount;
             });
 
         } catch (RuntimeException e) {

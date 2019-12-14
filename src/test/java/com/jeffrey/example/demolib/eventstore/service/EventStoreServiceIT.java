@@ -112,7 +112,7 @@ public class EventStoreServiceIT {
 
     @Test
     public void testConcurrentRetry_noProducerAck() throws Throwable {
-        final int MAX_MESSAGE = 2;
+        final int MAX_MESSAGE = 10;
         for (int i=0; i<MAX_MESSAGE; i++) {
             eventStoreService.createEventFromMessage(
                     MessageBuilder.withPayload("testing message " + i).build(), Source.OUTPUT);
@@ -140,7 +140,7 @@ public class EventStoreServiceIT {
         };
         EventStoreRetryService eventStoreRetryService = new EventStoreRetryService(retryTemplate);
 
-        final int MAX_THREAD = 4;
+        final int MAX_THREAD = 8;
         final CountDownLatch lock = new CountDownLatch(MAX_THREAD);
         final Executor executor = Executors.newFixedThreadPool(MAX_THREAD);
         for (int i=0; i<MAX_THREAD; i++) {
