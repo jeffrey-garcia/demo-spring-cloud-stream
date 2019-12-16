@@ -1,9 +1,7 @@
 package com.jeffrey.example.demoapp.bindings;
 
-import com.jeffrey.example.demolib.eventstore.service.EventStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.messaging.Sink;
@@ -17,9 +15,6 @@ import java.util.Map;
 @EnableBinding({Sink.class})
 public class DemoConsumer {
     private static final Logger LOGGER = LoggerFactory.getLogger(DemoConsumer.class);
-
-    @Autowired
-    EventStoreService eventStoreService;
 
 //    /**
 //     * If DLQ is not configured AND acknowledgement mode is AUTO
