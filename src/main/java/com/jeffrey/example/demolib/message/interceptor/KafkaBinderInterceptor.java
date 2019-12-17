@@ -1,4 +1,4 @@
-package com.jeffrey.example.demolib.interceptor;
+package com.jeffrey.example.demolib.message.interceptor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

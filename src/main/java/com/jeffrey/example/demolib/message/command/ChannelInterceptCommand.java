@@ -1,4 +1,4 @@
-package com.jeffrey.example.demolib.command;
+package com.jeffrey.example.demolib.message.command;
 
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;

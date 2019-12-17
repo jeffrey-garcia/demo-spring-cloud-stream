@@ -1,9 +1,9 @@
-package com.jeffrey.example.demolib.service;
+package com.jeffrey.example.demolib.message.service;
 
-import com.jeffrey.example.demolib.command.ChannelInterceptCommand;
-import com.jeffrey.example.demolib.interceptor.DefaultChannelInterceptor;
-import com.jeffrey.example.demolib.interceptor.KafkaBinderInterceptor;
-import com.jeffrey.example.demolib.interceptor.RabbitBinderInterceptor;
+import com.jeffrey.example.demolib.message.command.ChannelInterceptCommand;
+import com.jeffrey.example.demolib.message.interceptor.DefaultChannelInterceptor;
+import com.jeffrey.example.demolib.message.interceptor.KafkaBinderInterceptor;
+import com.jeffrey.example.demolib.message.interceptor.RabbitBinderInterceptor;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

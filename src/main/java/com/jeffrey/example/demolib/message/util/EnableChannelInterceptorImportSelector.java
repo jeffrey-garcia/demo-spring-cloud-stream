@@ -1,8 +1,8 @@
-package com.jeffrey.example.demolib.util;
+package com.jeffrey.example.demolib.message.util;
 
-import com.jeffrey.example.demolib.annotation.EnableChannelInterceptor;
-import com.jeffrey.example.demolib.config.MessageChannelConfig;
-import com.jeffrey.example.demolib.service.ChannelInterceptorService;
+import com.jeffrey.example.demolib.message.annotation.EnableChannelInterceptor;
+import com.jeffrey.example.demolib.message.config.MessageChannelConfig;
+import com.jeffrey.example.demolib.message.service.ChannelInterceptorService;
 import org.springframework.cloud.commons.util.SpringFactoryImportSelector;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.type.AnnotationMetadata;

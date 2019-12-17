@@ -1,6 +1,6 @@
-package com.jeffrey.example.demolib.config;
+package com.jeffrey.example.demolib.message.config;
 
-import com.jeffrey.example.demolib.service.ChannelInterceptorService;
+import com.jeffrey.example.demolib.message.service.ChannelInterceptorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;

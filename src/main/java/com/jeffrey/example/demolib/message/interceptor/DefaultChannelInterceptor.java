@@ -1,6 +1,6 @@
-package com.jeffrey.example.demolib.interceptor;
+package com.jeffrey.example.demolib.message.interceptor;
 
-import com.jeffrey.example.demolib.command.ChannelInterceptCommand;
+import com.jeffrey.example.demolib.message.command.ChannelInterceptCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
