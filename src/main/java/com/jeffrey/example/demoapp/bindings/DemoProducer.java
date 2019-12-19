@@ -1,6 +1,5 @@
 package com.jeffrey.example.demoapp.bindings;
 
-import com.jeffrey.example.demolib.eventstore.service.EventStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,9 +18,6 @@ public class DemoProducer {
 
     @Autowired
     Source source;
-
-    @Autowired
-    EventStoreService eventStoreService;
 
     @Publisher(channel = Source.OUTPUT)
     public boolean sendMessage(Message<?> message) throws IOException {

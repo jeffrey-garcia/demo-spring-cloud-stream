@@ -1,6 +1,7 @@
 package com.jeffrey.example.demoapp;
 
 import com.jeffrey.example.demolib.eventstore.annotation.EnableEventStore;
+import com.jeffrey.example.demolib.shutdown.annotation.EnableGracefulShutdown;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -15,7 +16,9 @@ import org.springframework.context.annotation.Bean;
 
 //@EnableChannelInterceptor(useDefault = false)
 //@EnableChannelInterceptor
-@EnableEventStore
+//@EnableEventStore
+//@EnableGracefulShutdown(useSimpleSecurity = true)
+@EnableGracefulShutdown
 @EnableDiscoveryClient
 @SpringBootApplication
 public class DemoApplication {

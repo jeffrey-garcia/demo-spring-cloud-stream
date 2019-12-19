@@ -117,6 +117,24 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- use circuit breaker for governing the system timeout globally -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
+		</dependency>
+
+		<!-- use spring cloud common for factory import selector -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-commons</artifactId>
+		</dependency>
+
+		<!-- use spring security to block any inbound call once shutdown is signaled -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
 		<!-- JUnit interceptor for Spring Cloud Stream -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
