@@ -18,8 +18,8 @@ import java.lang.annotation.*;
 @Documented
 @Inherited
 @Import(EnableGracefulShutdownImportSelector.class)
-@EnableEventStore
 @EnableChannelInterceptor
+@EnableEventStore
 public @interface EnableGracefulShutdown {
 
     @AliasFor(
