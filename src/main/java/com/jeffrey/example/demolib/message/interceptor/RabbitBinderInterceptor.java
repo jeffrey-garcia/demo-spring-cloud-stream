@@ -1,6 +1,5 @@
 package com.jeffrey.example.demolib.message.interceptor;
 
-import com.jeffrey.example.demolib.shutdown.service.GracefulShutdownService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -12,14 +11,11 @@ public class RabbitBinderInterceptor extends DefaultChannelInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitBinderInterceptor.class);
 
     public RabbitBinderInterceptor(BeanFactory beanFactory) {
+        super(beanFactory);
+
         defaultCommand = (message, messageChannel) -> {
-            GracefulShutdownService gracefulShutdownService = beanFactory.getBean(GracefulShutdownService.class);
-            boolean shutdownTriggered = gracefulShutdownService.isInvoked();
-            if (!shutdownTriggered) {
-                return message;
-            }
-            LOGGER.debug("shutdown triggered, proceed to channel intercepting logic");
             try {
+                LOGGER.debug("shutdown triggered, intercept message");
                 List xDeath = message.getHeaders().get("x-death", List.class);
 
                 if (xDeath != null && xDeath.size() > 0) {

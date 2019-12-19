@@ -1,17 +1,26 @@
 package com.jeffrey.example.demoapp;
 
 import com.jeffrey.example.demolib.eventstore.annotation.EnableEventStore;
+import com.jeffrey.example.demolib.message.annotation.EnableChannelInterceptor;
+import com.jeffrey.example.demolib.message.command.ChannelInterceptCommand;
+import com.jeffrey.example.demolib.message.service.ChannelInterceptorService;
 import com.jeffrey.example.demolib.shutdown.annotation.EnableGracefulShutdown;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.stream.config.BinderProperties;
+import org.springframework.cloud.stream.config.BindingProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.messaging.Message;
+
+import java.lang.reflect.Method;
 
 
 //@EnableChannelInterceptor(useDefault = false)
@@ -27,22 +36,22 @@ public class DemoApplication {
 		SpringApplication.run(DemoApplication.class, args);
 	}
 
-	@Autowired
-	BeanFactory beanFactory;
-
+//	@Autowired
+//	BeanFactory beanFactory;
+//
 //	@Autowired
 //	@Qualifier("channelInterceptorService")
 //	ChannelInterceptorService interceptorService;
-
-	@Bean
-	public CommandLineRunner commandLineRunner(ApplicationContext applicationContext) {
-		return (args) -> {
-			// Demonstrate how to override the intercept command to integrate with
-			// any custom business logic or application specific handling
+//
+//	@Bean
+//	public CommandLineRunner commandLineRunner(ApplicationContext applicationContext) {
+//		return (args) -> {
+//			// Demonstrate how to override the intercept command to integrate with
+//			// any custom business logic or application specific handling
 //			interceptorService.configureCommand("input", routeToOtherQueueAutoAck);
-		};
-	}
-
+//		};
+//	}
+//
 //	final ChannelInterceptCommand<Message<?>> routeToOtherQueueAutoAck = (message, messageChannel) -> {
 //		final BindingProperties bindingProperties = interceptorService.getBinding("input");
 //		final BinderProperties binderProperties = interceptorService.getBinder("input");
@@ -79,9 +88,9 @@ public class DemoApplication {
 //			throw e;
 //		}
 //
-//		return null;
+//		return message;
 //	};
-//
+
 //	final ChannelInterceptCommand<Message<?>> routeToOtherQueueManualAck = (message, messageChannel) -> {
 //		final BindingProperties bindingProperties = interceptorService.getBinding("input");
 //		final BinderProperties binderProperties = interceptorService.getBinder("input");
@@ -141,7 +150,7 @@ public class DemoApplication {
 //			throw e;
 //		}
 //
-//		return null;
+//		return message;
 //	};
 
 }

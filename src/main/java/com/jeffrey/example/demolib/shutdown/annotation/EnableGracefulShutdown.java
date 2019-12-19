@@ -20,10 +20,6 @@ import java.lang.annotation.*;
 @Import(EnableGracefulShutdownImportSelector.class)
 @EnableEventStore
 @EnableChannelInterceptor
-@EnableAutoConfiguration(exclude = {
-        SecurityAutoConfiguration.class,
-        ManagementWebSecurityAutoConfiguration.class
-})
 public @interface EnableGracefulShutdown {
 
     @AliasFor(
@@ -31,8 +27,6 @@ public @interface EnableGracefulShutdown {
             attribute = "exclude"
     )
     Class<?>[] suppressAutoConfiguration() default {
-            SecurityAutoConfiguration.class,
-            ManagementWebSecurityAutoConfiguration.class,
             MongoAutoConfiguration.class,
             MongoDataAutoConfiguration.class
     };

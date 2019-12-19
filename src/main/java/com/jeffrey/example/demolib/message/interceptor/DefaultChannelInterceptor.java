@@ -1,8 +1,10 @@
 package com.jeffrey.example.demolib.message.interceptor;
 
 import com.jeffrey.example.demolib.message.command.ChannelInterceptCommand;
+import com.jeffrey.example.demolib.shutdown.service.GracefulShutdownService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -14,6 +16,17 @@ public class DefaultChannelInterceptor implements ChannelInterceptor {
     protected ChannelInterceptCommand<Message<?>> defaultCommand;
     protected ChannelInterceptCommand<Message<?>> command;
 
+    protected GracefulShutdownService gracefulShutdownService;
+
+    public DefaultChannelInterceptor(BeanFactory beanFactory) {
+        try {
+            GracefulShutdownService gracefulShutdownService = beanFactory.getBean(GracefulShutdownService.class);
+            this.gracefulShutdownService = gracefulShutdownService;
+        } catch (Exception e) {
+            LOGGER.warn("graceful shutdown is not configured: {}", e.getMessage());
+        }
+    }
+
     public ChannelInterceptor configure(ChannelInterceptCommand<Message<?>> command) {
         this.command = command;
         return this;
@@ -23,13 +36,18 @@ public class DefaultChannelInterceptor implements ChannelInterceptor {
     @Nullable
     public Message<?> preSend(Message<?> message, MessageChannel messageChannel) {
         try {
-            if (this.command == null) {
-                if (defaultCommand != null)
-                    return defaultCommand.invoke(message, messageChannel);
-                else
-                    return message;
+            boolean shutdownInProgress = gracefulShutdownService!=null && gracefulShutdownService.isInvoked();
+            if (shutdownInProgress) {
+                if (this.command == null) {
+                    if (defaultCommand != null)
+                        return defaultCommand.invoke(message, messageChannel);
+                    else
+                        return message;
+                }
+                return command.invoke(message, messageChannel);
+            } else {
+                return message;
             }
-            return command.invoke(message, messageChannel);
 
         } catch (Exception e) {
             if (e instanceof RuntimeException) {

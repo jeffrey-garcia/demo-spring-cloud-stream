@@ -24,6 +24,7 @@ import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -36,6 +37,7 @@ import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.*;
 
 @Component
+@EnableMongoRepositories
 public class MongoEventStoreDao extends AbstractEventStoreDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoEventStoreDao.class);
 

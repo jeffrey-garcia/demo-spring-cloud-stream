@@ -54,11 +54,15 @@ public class ChannelInterceptorService {
         return binderProperties;
     }
 
-    public void configureCommand(String channelName, ChannelInterceptCommand<Message<?>> command) {
+    public DefaultChannelInterceptor configureCommand(String channelName, ChannelInterceptCommand<Message<?>> command) {
         Object bean = beanFactory.getBean(channelName);
         if (bean instanceof AbstractMessageChannel) {
             AbstractMessageChannel channel = (AbstractMessageChannel)bean;
-            configureInterceptor(channel).configure(command);
+            DefaultChannelInterceptor channelInterceptor = configureInterceptor(channel);
+            channelInterceptor.configure(command);
+            return channelInterceptor;
+        } else {
+            throw new RuntimeException("bean not found for: " + channelName);
         }
     }
 

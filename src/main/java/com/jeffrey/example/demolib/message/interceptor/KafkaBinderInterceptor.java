@@ -8,6 +8,8 @@ public class KafkaBinderInterceptor extends DefaultChannelInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitBinderInterceptor.class);
 
     public KafkaBinderInterceptor(BeanFactory beanFactory) {
+        super(beanFactory);
+
         // TODO: implement the default command
     }
 
