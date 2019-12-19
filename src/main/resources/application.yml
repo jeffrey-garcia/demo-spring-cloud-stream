@@ -114,6 +114,10 @@ eventstore:
 #com:
 #  jeffrey:
 #    example:
+#      messaging:
+#        enabled: false
+#      eventstore:
+#        enabled: false
 #      gracefulShutdown:
 #        enabled: false
 shutdownHook:

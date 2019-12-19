@@ -27,7 +27,6 @@ public class GracefulShutdownService implements DisposableBean {
 
     private AtomicBoolean isInvoked = new AtomicBoolean(false);
 
-
     private ApplicationContext applicationContext;
 
     public GracefulShutdownService(
@@ -36,12 +35,11 @@ public class GracefulShutdownService implements DisposableBean {
         this.applicationContext = applicationContext;
     }
 
-
-    @Value("${shutdownHook.timeoutMillis:5000}")
-    int shutdownHookTimeout;
+//    @Value("${shutdownHook.timeoutMillis:5000}")
+//    int shutdownHookTimeout;
 
     @Async
-    public void invoke(final int exitCode) {
+    public void invoke(final int exitCode, final int shutdownHookTimeout) {
         if (isInvoked.get()) {
             return;
         } else {

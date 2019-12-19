@@ -17,7 +17,6 @@ import org.springframework.context.annotation.Bean;
 //@EnableChannelInterceptor(useDefault = false)
 //@EnableChannelInterceptor
 //@EnableEventStore
-//@EnableGracefulShutdown(useSimpleSecurity = true)
 @EnableGracefulShutdown
 @EnableDiscoveryClient
 @SpringBootApplication

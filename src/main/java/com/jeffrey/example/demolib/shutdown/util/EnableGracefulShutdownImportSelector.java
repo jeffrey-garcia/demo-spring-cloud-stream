@@ -2,8 +2,7 @@ package com.jeffrey.example.demolib.shutdown.util;
 
 import com.jeffrey.example.demolib.shutdown.annotation.EnableGracefulShutdown;
 import com.jeffrey.example.demolib.shutdown.config.GracefulShutdownConfig;
-import com.jeffrey.example.demolib.shutdown.config.SimpleSecurityConfig;
-import com.jeffrey.example.demolib.shutdown.config.DefaultSecurityConfig;
+import com.jeffrey.example.demolib.shutdown.filter.GracefulShutdownProcessingFilter;
 import com.jeffrey.example.demolib.shutdown.service.GracefulShutdownService;
 import org.springframework.cloud.commons.util.SpringFactoryImportSelector;
 import org.springframework.core.annotation.AnnotationAttributes;
@@ -23,20 +22,12 @@ public class EnableGracefulShutdownImportSelector extends SpringFactoryImportSel
         AnnotationAttributes attributes = AnnotationAttributes.fromMap(metadata.getAnnotationAttributes(this.getAnnotationClass().getName(), true));
         List<String> importsList = new ArrayList(Arrays.asList(imports));
         if (!this.isEnabled()) {
+            // TODO: explore way to disable it at runtime without restart
             return new String[0];
         } else {
-            importsList.add(GracefulShutdownConfig.class.getName());
             importsList.add(GracefulShutdownService.class.getName());
-
-            boolean useSimpleSecurity = attributes.getBoolean("useSimpleSecurity");
-            if (useSimpleSecurity) {
-                // apply dummy security config to override system/application configured security settings
-                // use for debugging/development
-                importsList.add(SimpleSecurityConfig.class.getName());
-            } else {
-                importsList.add(DefaultSecurityConfig.class.getName());
-            }
-
+            importsList.add(GracefulShutdownProcessingFilter.class.getName());
+            importsList.add(GracefulShutdownConfig.class.getName());
         }
 
         imports = importsList.toArray(new String[0]);

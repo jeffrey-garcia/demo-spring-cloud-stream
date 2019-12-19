@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.annotation.AliasFor;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
 import java.lang.annotation.*;
