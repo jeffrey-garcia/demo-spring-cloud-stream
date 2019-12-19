@@ -36,7 +36,7 @@ public class MessageChannelConfig {
                 Object bindableBean = beanFactory.getBean(binding);
                 if (bindableBean instanceof AbstractMessageChannel) {
                     AbstractMessageChannel abstractMessageChannel = (AbstractMessageChannel) bindableBean;
-                    // refers to demo app's configuration for message channel that should be intercepted
+                    // automatically lookup app's configuration for input message channel that should be intercepted
                     channelInterceptorService.configureInterceptor(abstractMessageChannel);
                 }
             }
