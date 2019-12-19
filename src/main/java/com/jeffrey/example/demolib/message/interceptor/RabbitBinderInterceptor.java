@@ -1,7 +1,9 @@
 package com.jeffrey.example.demolib.message.interceptor;
 
+import com.jeffrey.example.demolib.shutdown.service.GracefulShutdownService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanFactory;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
@@ -9,10 +11,17 @@ import java.util.List;
 public class RabbitBinderInterceptor extends DefaultChannelInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitBinderInterceptor.class);
 
-    public RabbitBinderInterceptor() {
+    public RabbitBinderInterceptor(BeanFactory beanFactory) {
         defaultCommand = (message, messageChannel) -> {
+            GracefulShutdownService gracefulShutdownService = beanFactory.getBean(GracefulShutdownService.class);
+            boolean shutdownTriggered = gracefulShutdownService.isInvoked();
+            if (!shutdownTriggered) {
+                return message;
+            }
+            LOGGER.debug("shutdown triggered, proceed to channel intercepting logic");
             try {
                 List xDeath = message.getHeaders().get("x-death", List.class);
+
                 if (xDeath != null && xDeath.size() > 0) {
                     // if DLQ configured, divert the message to dead-letter-queue
                     // once the dlq backoff time expired, the message is automatically put back to original queue

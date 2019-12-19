@@ -69,15 +69,14 @@ public class ChannelInterceptorService {
 
         if (bindingProperties!=null && binderProperties!=null) {
             final String binderType = binderProperties.getType();
-
             switch (SupportedBinders.valueOf(binderType)) {
                 case rabbit:
-                    DefaultChannelInterceptor rabbitBinderInterceptor = new RabbitBinderInterceptor();
+                    DefaultChannelInterceptor rabbitBinderInterceptor = new RabbitBinderInterceptor(beanFactory);
                     // ensure highest execution priority by setting it to the first element in the channel interceptor list
                     channel.addInterceptor(0, rabbitBinderInterceptor);
                     return rabbitBinderInterceptor;
                 case kafka:
-                    DefaultChannelInterceptor kafkaBinderInterceptor = new KafkaBinderInterceptor();
+                    DefaultChannelInterceptor kafkaBinderInterceptor = new KafkaBinderInterceptor(beanFactory);
                     // ensure highest execution priority by setting it to the first element in the channel interceptor list
                     channel.addInterceptor(0, kafkaBinderInterceptor);
                     return kafkaBinderInterceptor;

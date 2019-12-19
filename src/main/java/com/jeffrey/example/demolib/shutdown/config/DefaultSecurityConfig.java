@@ -14,7 +14,7 @@ import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 @EnableWebSecurity
 @Configuration
 @Order(1) // take precedence and override the application's configured web security configurer
-public class StandardSecurityConfig extends WebSecurityConfigurerAdapter {
+public class DefaultSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     @Qualifier("gracefulShutdownService")

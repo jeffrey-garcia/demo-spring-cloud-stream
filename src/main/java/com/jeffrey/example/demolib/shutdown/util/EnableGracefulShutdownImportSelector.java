@@ -3,7 +3,7 @@ package com.jeffrey.example.demolib.shutdown.util;
 import com.jeffrey.example.demolib.shutdown.annotation.EnableGracefulShutdown;
 import com.jeffrey.example.demolib.shutdown.config.GracefulShutdownConfig;
 import com.jeffrey.example.demolib.shutdown.config.SimpleSecurityConfig;
-import com.jeffrey.example.demolib.shutdown.config.StandardSecurityConfig;
+import com.jeffrey.example.demolib.shutdown.config.DefaultSecurityConfig;
 import com.jeffrey.example.demolib.shutdown.service.GracefulShutdownService;
 import org.springframework.cloud.commons.util.SpringFactoryImportSelector;
 import org.springframework.core.annotation.AnnotationAttributes;
@@ -34,7 +34,7 @@ public class EnableGracefulShutdownImportSelector extends SpringFactoryImportSel
                 // use for debugging/development
                 importsList.add(SimpleSecurityConfig.class.getName());
             } else {
-                importsList.add(StandardSecurityConfig.class.getName());
+                importsList.add(DefaultSecurityConfig.class.getName());
             }
 
         }
