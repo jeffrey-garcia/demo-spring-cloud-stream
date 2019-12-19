@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 public class EventStoreService<T> {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreService.class);
 
-    @Value("${eventstore.retry.autoStart:true}")
+    @Value("${com.jeffrey.example.eventstore.retry.autoStart:true}")
     boolean autoStart;
 
     private ApplicationContext applicationContext;

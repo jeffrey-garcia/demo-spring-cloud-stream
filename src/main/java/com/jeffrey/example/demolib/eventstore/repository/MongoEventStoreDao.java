@@ -41,7 +41,7 @@ import static com.mongodb.client.model.Updates.*;
 public class MongoEventStoreDao extends AbstractEventStoreDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoEventStoreDao.class);
 
-    @Value("${eventstore.retry.message.expired.seconds:60}") // message sending expiry default to 60s
+    @Value("${com.jeffrey.example.eventstore.retry.message.expired.seconds:60}") // message sending expiry default to 60s
     private long messageExpiredTimeInSec;
 
     private Clock clock;

@@ -99,26 +99,25 @@ spring:
                 publisherConfirms: true
                 publisherReturns: true
 
-# EventStore retry configuration
-eventstore:
-  retry:
-    autoStart: true
-    backoff:
-      milliseconds: 20000
-    message:
-      expired:
-        seconds: 10
-
-# Shutdown hook timeout in milliseconds (should be larger than Hystrix command execution timeout
-# to ensure that the shutdown does not happen earlier than the last request is completed/fallback by hystrix
-#com:
-#  jeffrey:
-#    example:
+com:
+  jeffrey:
+    example:
 #      messaging:
 #        enabled: false
-#      eventstore:
+      eventstore:
 #        enabled: false
-#      gracefulShutdown:
+        timezone: Asia/Hong_Kong
+        retry:
+          autoStart: true
+          backoff:
+            milliseconds: 20000
+          message:
+            expired:
+              seconds: 10
+      gracefulShutdown:
 #        enabled: false
-shutdownHook:
-  timeoutMillis: 10000
+        shutdownHook:
+          # Shutdown hook timeout in milliseconds (should be larger than Hystrix command execution timeout
+          # to ensure that the shutdown does not happen earlier than the last request is completed/fallback by hystrix
+          timeoutMillis: 10000
+

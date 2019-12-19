@@ -22,10 +22,10 @@ import java.time.ZoneId;
 public class EventStoreConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreConfig.class);
 
-    @Value("${eventstore.retry.backoff.milliseconds:90000}") // retry backoff default to 90s if undefined
+    @Value("${com.jeffrey.example.eventstore.retry.backoff.milliseconds:90000}") // retry backoff default to 90s if undefined
     long retryBackoffTimeInMs;
 
-    @Value("${eventstore.timezone:#{null}}") // zoneIdString default null if undefined
+    @Value("${com.jeffrey.example.eventstore.timezone:#{null}}") // zoneIdString default null if undefined
     String zoneIdString;
 
     @Bean

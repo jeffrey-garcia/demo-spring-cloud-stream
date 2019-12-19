@@ -26,7 +26,7 @@ import java.util.Collections;
 public class GracefulShutdownConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(GracefulShutdownConfig.class);
 
-    @Value("${shutdownHook.timeoutMillis:5000}")
+    @Value("${com.jeffrey.example.gracefulShutdown.shutdownHook.timeoutMillis:5000}")
     private int shutdownHookTimeout;
 
     @Autowired
