@@ -6,7 +6,7 @@ import org.springframework.retry.RetryCallback;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 
-@Service
+@Service("EventStoreRetryService")
 public class EventStoreRetryService {
 
     private RetryTemplate retryTemplate;

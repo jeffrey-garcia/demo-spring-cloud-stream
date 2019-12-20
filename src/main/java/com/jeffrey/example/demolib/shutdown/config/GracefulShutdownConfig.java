@@ -33,8 +33,7 @@ public class GracefulShutdownConfig {
     @Qualifier("gracefulShutdownProcessingFilter")
     GracefulShutdownProcessingFilter gracefulShutdownProcessingFilter;
 
-    @Bean
-    @Qualifier("gracefulShutdownFilterRegistrar")
+    @Bean("gracefulShutdownFilterRegistrar")
     public FilterRegistrationBean<GracefulShutdownProcessingFilter> gracefulShutdownFilterRegistrar() {
         // all incoming request will be intercept by this filter which possess the highest priority in spring security filter chain
         FilterRegistrationBean<GracefulShutdownProcessingFilter> filterRegistrationBean = new FilterRegistrationBean<>();
@@ -47,8 +46,7 @@ public class GracefulShutdownConfig {
     }
 
     @RefreshScope
-    @Bean
-    @Qualifier("sigIntHandler")
+    @Bean("sigIntHandler")
     public SignalHandler sigIntHandler(
             @Autowired ApplicationContext context,
             @Autowired GracefulShutdownService gracefulShutdownService)
@@ -66,8 +64,7 @@ public class GracefulShutdownConfig {
     }
 
     @RefreshScope
-    @Bean
-    @Qualifier("sigTermHandler")
+    @Bean("sigTermHandler")
     public SignalHandler sigTermHandler(
             @Autowired ApplicationContext context,
             @Autowired GracefulShutdownService gracefulShutdownService)
@@ -84,8 +81,7 @@ public class GracefulShutdownConfig {
         });
     }
 
-    @Bean
-    @Qualifier("gracefulShutdownContainerCloseListener")
+    @Bean("gracefulShutdownContainerCloseListener")
     ApplicationListener gracefulShutdownContainerCloseListener() {
         return (ApplicationListener<ContextClosedEvent>) contextClosedEvent -> {
             LOGGER.debug("Spring container is closed");

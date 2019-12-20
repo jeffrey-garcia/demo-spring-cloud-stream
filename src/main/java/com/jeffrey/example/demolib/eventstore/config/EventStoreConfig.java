@@ -28,8 +28,7 @@ public class EventStoreConfig {
     @Value("${com.jeffrey.example.eventstore.timezone:#{null}}") // zoneIdString default null if undefined
     String zoneIdString;
 
-    @Bean
-    @Qualifier("eventStoreRetryTemplate")
+    @Bean("eventStoreRetryTemplate")
     public RetryTemplate eventStoreRetryTemplate() {
         RetryTemplate retryTemplate = new RetryTemplate();
         FixedBackOffPolicy fixedBackOffPolicy = new FixedBackOffPolicy();
@@ -39,16 +38,14 @@ public class EventStoreConfig {
         return retryTemplate;
     }
 
-    @Bean
-    @Qualifier("eventStoreClock")
+    @Bean("eventStoreClock")
     public Clock eventStoreClock() {
         // timezone default to system if undefined
         Clock clock = zoneIdString != null ? Clock.system(ZoneId.of(zoneIdString)):Clock.systemDefaultZone();
         return clock;
     }
 
-    @Bean
-    @Qualifier("eventIdGenerator")
+    @Bean("eventIdGenerator")
     public IdGenerator idGenerator() {
         /**
          * An IdGenerator that uses SecureRandom for the initial seed and Random thereafter,
@@ -58,8 +55,7 @@ public class EventStoreConfig {
         return new AlternativeJdkIdGenerator();
     }
 
-    @Bean
-    @Qualifier("eventStoreAspect")
+    @Bean("eventStoreAspect")
     public EventStoreAspect eventStoreAspect() {
         return new EventStoreAspect();
     }

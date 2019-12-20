@@ -85,7 +85,7 @@ public class EventStoreService2IT {
         }
     }
 
-    @Value("${eventstore.retry.backoff.milliseconds:30000}")
+    @Value("${com.jeffrey.example.eventstore.retry.backoff.milliseconds:30000}")
     long retryBackoffTimeInMs;
 
     @Autowired

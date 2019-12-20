@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Service
+@Service("EventStoreService")
 public class EventStoreService<T> {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreService.class);
 

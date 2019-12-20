@@ -36,7 +36,7 @@ import java.util.Optional;
 import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.*;
 
-@Component
+@Component("MongoEventStoreDao")
 @EnableMongoRepositories
 public class MongoEventStoreDao extends AbstractEventStoreDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoEventStoreDao.class);

@@ -1,7 +1,6 @@
 package com.jeffrey.example.demolib.shutdown.filter;
 
 import com.jeffrey.example.demolib.shutdown.service.GracefulShutdownService;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -11,8 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@Component
-@Qualifier("gracefulShutdownProcessingFilter")
+@Component("gracefulShutdownProcessingFilter")
 public class GracefulShutdownProcessingFilter extends OncePerRequestFilter {
 
     private GracefulShutdownService gracefulShutdownService;

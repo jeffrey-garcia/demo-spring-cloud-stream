@@ -25,8 +25,7 @@ public class MongoDbConfig extends AbstractMongoClientConfiguration {
     @Value("${spring.data.mongodb.uri:#{null}}")
     protected String mongoDbConnectionString;
 
-    @Bean
-    @Qualifier("mongoDbFactory")
+    @Bean("mongoDbFactory")
     @Override
     public SimpleMongoClientDbFactory mongoDbFactory() {
         Assert.notNull(mongoDbConnectionString, "mongoDbConnectionString is null");
@@ -34,8 +33,7 @@ public class MongoDbConfig extends AbstractMongoClientConfiguration {
         return new SimpleMongoClientDbFactory(connectionString);
     }
 
-    @Bean
-    @Qualifier("mongoTransactionManager")
+    @Bean("mongoTransactionManager")
     MongoTransactionManager transactionManager(
             @Autowired
             @Qualifier("mongoDbFactory")
