@@ -1,7 +1,7 @@
 package com.jeffrey.example.demoapp;
 
 
-import com.manulife.ap.core.eventstore.annotation.EnableEventStore;
+import com.manulife.ap.core.shutdown.annotation.EnableRsfGracefulShutdown;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -13,9 +13,10 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 
-@EnableEventStore
-//@EnableChannelInterceptor(useDefault = false)
-//@EnableChannelInterceptor
+@EnableRsfGracefulShutdown
+//@EnableRsfEventStore
+//@EnableRsfChannelInterceptor(useDefault = false)
+//@EnableRsfChannelInterceptor
 @EnableDiscoveryClient
 @SpringBootApplication
 public class DemoApplication {

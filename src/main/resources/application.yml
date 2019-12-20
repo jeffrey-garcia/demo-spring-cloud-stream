@@ -99,14 +99,22 @@ spring:
                 publisherConfirms: true
                 publisherReturns: true
 
-# event-store specific configuration
-eventstore:
-  retry:
-    autoStart: true
-    backoff:
-      milliseconds: 20000
-    message:
-      expired:
-        seconds: 10
-
+rsf:
+  core:
+    messagingInterceptor:
+      enabled: true
+    eventstore:
+      enabled: true
+      timezone: Asia/Hong_Kong
+      retry:
+        autoStart: true
+        backoff:
+          milliseconds: 30000
+        message:
+          expired:
+            seconds: 10
+    gracefulShutdown:
+      enabled: true
+      shutdownHook:
+        timeoutMillis: 10000
 

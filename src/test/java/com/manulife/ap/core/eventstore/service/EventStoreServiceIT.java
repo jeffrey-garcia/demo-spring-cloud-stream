@@ -1,8 +1,10 @@
 package com.manulife.ap.core.eventstore.service;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;
 import com.jeffrey.example.demoapp.model.DemoMessageModel;
+import com.manulife.ap.core.eventstore.annotation.EnableRsfEventStore;
 import com.manulife.ap.core.eventstore.config.EventStoreConfig;
 import com.manulife.ap.core.eventstore.config.MongoDbConfig;
 import com.manulife.ap.core.eventstore.entity.DomainEvent;
@@ -10,16 +12,27 @@ import com.manulife.ap.core.eventstore.repository.EventStoreDao;
 import com.manulife.ap.core.eventstore.repository.MongoEventStoreDao;
 import com.manulife.ap.core.eventstore.service.EventStoreRetryService;
 import com.manulife.ap.core.eventstore.service.EventStoreService;
+import com.manulife.ap.core.eventstore.util.ChannelBindingAccessor;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.cloud.stream.annotation.EnableBinding;
+import org.springframework.cloud.stream.annotation.StreamListener;
+import org.springframework.cloud.stream.messaging.Processor;
+import org.springframework.cloud.stream.messaging.Sink;
 import org.springframework.cloud.stream.messaging.Source;
 import org.springframework.context.annotation.Import;
+import org.springframework.integration.annotation.Publisher;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Headers;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.retry.RetryCallback;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
@@ -33,6 +46,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
@@ -40,6 +54,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Import({
+        ChannelBindingAccessor.class,
         MongoDbConfig.class,
         MongoEventStoreDao.class,
         EventStoreConfig.class,
@@ -52,7 +67,63 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RunWith(SpringRunner.class)
 public class EventStoreServiceIT {
 
-    @Value("${eventstore.retry.backoff.milliseconds:30000}")
+    @SpringBootApplication
+    @EnableRsfEventStore
+    @EnableBinding(Processor.class)
+    public static class TestProcessor {
+        @Autowired
+        Processor processor;
+
+        @Publisher(channel = Processor.OUTPUT)
+        public boolean sendMessage(Message<?> message) throws IOException {
+            return processor.output().send(message);
+        }
+
+        @StreamListener(Sink.INPUT)
+        public void listen(
+                @Payload String messageString,
+                @Header(name = "x-death", required = false) Map<?,?> death,
+                @Headers MessageHeaders headers
+        ) throws Exception {
+            // message receiver
+        }
+    }
+
+    public static class DemoInsurancePolicy {
+        @JsonProperty("policyId")
+        private String policyId;
+
+        @JsonProperty("policyHolder")
+        private String policyHolder;
+
+        public DemoInsurancePolicy(@JsonProperty("policyId")String policyId, @JsonProperty("policyHolder")String policyHolder) {
+            this.policyId = policyId;
+            this.policyHolder = policyHolder;
+        }
+
+        public String getPolicyId() {
+            return policyId;
+        }
+
+        public String getPolicyHolder() {
+            return policyHolder;
+        }
+    }
+
+    public static class DemoMessageModel {
+        @JsonProperty("demoInsurancePolicy")
+        private DemoInsurancePolicy demoInsurancePolicy;
+
+        public DemoMessageModel(@JsonProperty("demoInsurancePolicy")DemoInsurancePolicy demoInsurancePolicy) {
+            this.demoInsurancePolicy = demoInsurancePolicy;
+        }
+
+        public DemoInsurancePolicy getDemoInsurancePolicy() {
+            return this.demoInsurancePolicy;
+        }
+    }
+
+    @Value("${rsf.core.eventstore.retry.backoff.milliseconds:90000}")
     long retryBackoffTimeInMs;
 
     @Autowired
@@ -60,6 +131,9 @@ public class EventStoreServiceIT {
 
     @Autowired
     EventStoreService eventStoreService;
+
+    @Autowired
+    TestProcessor testProcessor;
 
     @Before
     public void setUp() {
@@ -74,10 +148,12 @@ public class EventStoreServiceIT {
         Assert.assertEquals(2, eventStoreDao.findAll().size());
     }
 
+
     @Test
     public void testFetchEventAndResend() {
         eventStoreService.fetchEventAndResend();
     }
+
 
     @Test
     public void testRetry() throws Throwable {
@@ -109,7 +185,7 @@ public class EventStoreServiceIT {
 
     @Test
     public void testConcurrentRetry_noProducerAck() throws Throwable {
-        final int MAX_MESSAGE = 2;
+        final int MAX_MESSAGE = 10;
         for (int i=0; i<MAX_MESSAGE; i++) {
             eventStoreService.createEventFromMessage(
                     MessageBuilder.withPayload("testing message " + i).build(), Source.OUTPUT);
@@ -137,7 +213,7 @@ public class EventStoreServiceIT {
         };
         EventStoreRetryService eventStoreRetryService = new EventStoreRetryService(retryTemplate);
 
-        final int MAX_THREAD = 4;
+        final int MAX_THREAD = 8;
         final CountDownLatch lock = new CountDownLatch(MAX_THREAD);
         final Executor executor = Executors.newFixedThreadPool(MAX_THREAD);
         for (int i=0; i<MAX_THREAD; i++) {
@@ -184,11 +260,6 @@ public class EventStoreServiceIT {
     }
 
     @Test
-    public void testDuplicatedEvent() {
-        Assert.fail("not implemented");
-    }
-
-    @Test
     public void testMessageSerializing() throws IOException, ClassNotFoundException {
         DemoInsurancePolicy policy = new DemoInsurancePolicy(UUID.randomUUID().toString(), "Steve Rogers");
         DemoMessageModel messageModel = new DemoMessageModel(policy);
@@ -196,12 +267,6 @@ public class EventStoreServiceIT {
                 MessageBuilder.withPayload(messageModel).build(), Source.OUTPUT);
 
         DomainEvent domainEvent = eventStoreDao.findAll().get(0);
-//        String eventId = domainEvent.getId();
-//        String jsonHeaders = domainEvent.getHeader();
-//        String jsonPayload = domainEvent.getPayload();
-//        String payloadClassName = domainEvent.getPayloadClassName();
-//        Class payloadClass = Class.forName(payloadClassName);
-
         Message _message = eventStoreService.createMessageFromEvent(domainEvent);
 
         Assert.assertTrue(_message.getPayload() instanceof DemoMessageModel);

@@ -28,7 +28,7 @@
 		<dependency>
 			<groupId>com.manulife.ap</groupId>
 			<artifactId>rsf-core</artifactId>
-			<version>0.0.6-snapshot</version>
+			<version>0.0.7-snapshot</version>
 		</dependency>
 
 		<dependency>
@@ -41,6 +41,7 @@
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-stream-test-support</artifactId>
+			<version>3.0.0.RELEASE</version>
 			<scope>test</scope>
 		</dependency>
 

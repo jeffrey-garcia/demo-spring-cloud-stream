@@ -1,9 +1,112 @@
-eventstore:
-  timezone: Asia/Hong_Kong
-  retry:
-    autoStart: false # disable the auto retry when running integration test
-    backoff:
-      milliseconds: 1500
-    message:
-      expired:
-        seconds: 1
+# Local RabbitMQ binder config
+spring:
+  cloud:
+    stream:
+      rabbit:
+        bindings:
+          output:
+            producer:
+              # A SpEL expression to determine the routing key to use when publishing messages
+              routingKeyExpression: '"test.event.1"'
+              # The routing key  to use when publishing messages
+              bindingRoutingKey: test.event.1
+              # Channel to which to send positive delivery acknowledgments
+              # - errorChannelEnabled should be true
+              # - connection factory must be configured to enable publisher confirms
+              confirmAckChannel: publisher-confirm
+          input:
+            consumer:
+              # The routing key with which to bind the queue to the exchange
+              bindingRoutingKey: test.event.1
+              # Configure the consumer to automatically acknowledge message,
+              # avoid using manual ack since the listener container will do that
+              # automatically for you with AUTO ack mode, manual acks is for special
+              # use cases such as deferring acks, or early acking.
+              #
+              # During AUTO ack mode, the default behavior is:
+              # - the container will ack the message (and discard it) if the listener exits normally
+              # - the container will reject the message (and requeue it) if the listener throws an exception
+              # The maximum number of consumers
+              maxConcurrency: 3
+              # dlx/dlq setup
+              autoBindDlq: true
+              # The backoff time to wait between re-deliveries
+              # when the backoff time expired, message from the DLQ are routed back to original queue
+              dlqTtl: 15000
+              # The dlqDeadLetterExchange property is specified with no value,
+              # which means route expired messages to the default exchange DLX
+              dlqDeadLetterExchange:
+              # When maxAttempt = 1 (internal retry disabled) AND requeueRejected = true
+              # any rejected/failed message will be re-queued and retry exhaustively
+              # When DLQ is configured, set requeueRejected = false such that any exception thrown
+              # can cause the rejected/failed message to be routed to DLQ instead of infinite retry
+              requeueRejected: false
+      bindings:
+        input:
+          # Name of the Exchange
+          destination: demoapp-exchange
+          contentType: application/json
+          binder: local_rabbit
+          # Name of the Queue
+          # each application instance will have a dedicated RabbitMQ Consumer instance for its group’s Queue
+          group: demoapp-queue
+          consumer:
+            # Disable default binder retry
+            # if not configured, default binder will assume 3 attempts before it considered the retries are exhausted
+            # if set to 1, binder internal retry will be disabled and message are routed to DLQ right-away when any exception
+            maxAttempts: 1
+            # The number of concurrent consumers to initially start for each listener
+            # raise it to scale the consumption of messages coming in from a queue.
+            # however, note that any ordering guarantees are lost once multiple
+            # consumers are registered.
+            # In general, stick with 1 consumer for low-volume queues.
+            concurrency: 1
+        output:
+          # Name of the Exchange
+          destination: demoapp-exchange
+          contentType: application/json
+          group: demoapp-queue
+          binder: local_rabbit
+          # Publisher failures are sent to an error channel for the destination,
+          # works only when publisherConfirms and publisherReturns are both true
+          producer:
+            errorChannelEnabled: true
+      binders:
+        local_rabbit:
+          type: rabbit
+          environment:
+            spring:
+              rabbitmq:
+                # Connect to RabbitMQ cluster and fail-over at the client-side regardless a HA-proxy
+                addresses: localhost:5674,localhost:5672
+                username: guest
+                password: guest
+                connectionTimeout: 60000
+                # Requested heartbeat timeout, in seconds; zero for none.
+                requestedHeartbeat: 15000
+                # Configure the connection factory to provide acknowledgement to publishers
+                # - guarantee message is not lost during sending to broker cause
+                # - if the broker is unable to store a message it will return a nack asynchronously
+                #   and refuses responsibility of it, the client could choose to apply retry strategy
+                #   or report the failure to upstream
+                publisherConfirms: true
+                publisherReturns: true
+
+rsf:
+  core:
+    messagingInterceptor:
+      enabled: true
+    eventstore:
+      enabled: true
+      timezone: Asia/Hong_Kong
+      retry:
+        autoStart: false # disable auto retry if local test
+        backoff:
+          milliseconds: 1500 # short backoff duration if local test
+        message:
+          expired:
+            seconds: 1 # instant message expiry if local test
+    gracefulShutdown:
+      enabled: true
+      shutdownHook:
+        timeoutMillis: 5000 # shutdown hook timeout should not be larger than 10 seconds

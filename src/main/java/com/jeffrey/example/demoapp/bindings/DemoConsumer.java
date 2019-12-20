@@ -1,10 +1,8 @@
 package com.jeffrey.example.demoapp.bindings;
 
 
-import com.manulife.ap.core.eventstore.service.EventStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.messaging.Sink;
@@ -18,9 +16,6 @@ import java.util.Map;
 @EnableBinding({Sink.class})
 public class DemoConsumer {
     private static final Logger LOGGER = LoggerFactory.getLogger(DemoConsumer.class);
-
-    @Autowired
-    EventStoreService eventStoreService;
 
 //    /**
 //     * If DLQ is not configured AND acknowledgement mode is AUTO
@@ -115,9 +110,7 @@ public class DemoConsumer {
             // simulate any un-expected exception thrown in the business logic
             // throw new Exception("dummy exception!");
 
-            String eventId = headers.get("eventId", String.class);
-            LOGGER.debug("message consumed, eventId: {}", eventId);
-            eventStoreService.updateEventAsConsumed(eventId);
+            LOGGER.debug("message processing finish");
 
         } catch (Exception e) {
             /**
