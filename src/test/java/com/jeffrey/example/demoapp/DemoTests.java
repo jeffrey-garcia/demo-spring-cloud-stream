@@ -22,7 +22,7 @@ import java.util.Set;
 public class DemoTests {
 
     @Test
-    public void testSerialize0() throws IOException {
+    public void testSerialize0() throws Exception {
         String jsonStringPayload = "{\"demoInsurancePolicy\":{\"policyId\":\"3a3f3566-8ebd-4029-8c33-85ddb67de75d\",\"policyHolder\":\"Steve Rogers\"}}";
 
         Jackson2JsonObjectMapper mapper = ObjectMapperFactory.getMapper();
@@ -54,7 +54,7 @@ public class DemoTests {
     }
 
     @Test
-    public void testSerialize2() throws IOException {
+    public void testSerialize2() throws Exception {
         Jackson2JsonObjectMapper mapper = ObjectMapperFactory.getMapper();
 
         Message message = MessageBuilder.withPayload("testing").build();

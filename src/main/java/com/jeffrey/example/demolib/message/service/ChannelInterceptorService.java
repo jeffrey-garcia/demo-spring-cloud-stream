@@ -66,7 +66,7 @@ public class ChannelInterceptorService {
     }
 
     private DefaultChannelInterceptor createInterceptor(AbstractMessageChannel channel) {
-        final String beanName = channel.getBeanName();
+        final String beanName = channel.getComponentName();
         final BindingProperties bindingProperties = getBinding(beanName);
         final BinderProperties binderProperties = getBinder(beanName);
 
@@ -85,11 +85,11 @@ public class ChannelInterceptorService {
                     return kafkaBinderInterceptor;
                 default:
                     // skip if binder type is un-supported
-                    throw new RuntimeException("un-supported binder type for channel: " + channel.getBeanName());
+                    throw new RuntimeException("un-supported binder type for channel: " + channel.getComponentName());
             }
 
         } else {
-            throw new RuntimeException("binding configuration not found for channel: " + channel.getBeanName());
+            throw new RuntimeException("binding configuration not found for channel: " + channel.getComponentName());
         }
     }
 

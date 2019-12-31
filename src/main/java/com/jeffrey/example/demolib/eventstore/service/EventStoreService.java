@@ -58,7 +58,7 @@ public class EventStoreService<T> {
         this.eventStoreRetryService = eventStoreRetryService;
     }
 
-    public Message createEventFromMessage(Message message, String outputChannelName) throws IOException {
+    public Message createEventFromMessage(Message message, String outputChannelName) throws Exception {
         String eventId = eventIdGenerator.generateId().toString();
 
         // The MessageHeaders.ID and MessageHeaders.TIMESTAMP are read-only headers and cannot be overridden
@@ -112,7 +112,7 @@ public class EventStoreService<T> {
         });
     }
 
-    protected Message<?> createMessageFromEvent(DomainEvent domainEvent) throws IOException, ClassNotFoundException {
+    protected Message<?> createMessageFromEvent(DomainEvent domainEvent) throws Exception, ClassNotFoundException {
         Map headers = ObjectMapperFactory.getMapper().fromJson(domainEvent.getHeader(), Map.class);
         headers.put("eventId", domainEvent.getId());
 

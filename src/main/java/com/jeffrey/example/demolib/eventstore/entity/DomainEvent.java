@@ -1,11 +1,9 @@
 package com.jeffrey.example.demolib.eventstore.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.hash.Hashing;
 import com.jeffrey.example.demolib.eventstore.util.ObjectMapperFactory;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.HashIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
@@ -29,7 +27,7 @@ public class DomainEvent {
      *
      * TODO: Isolate a specific subset of data on a specific set of shards using zone
      */
-    @HashIndexed
+//    @HashIndexed
     @Id
     @JsonProperty("id")
     private String id;
@@ -78,7 +76,7 @@ public class DomainEvent {
     public String toString() {
         try {
             return ObjectMapperFactory.getMapper().toJson(this);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

@@ -103,7 +103,7 @@ public class EventStoreService2IT {
     }
 
     @Test
-    public void testCreateEvent() throws IOException {
+    public void testCreateEvent() throws Exception {
         Message message = MessageBuilder.withPayload("testing message").build();
         eventStoreService.createEventFromMessage(message, Source.OUTPUT);
         eventStoreService.createEventFromMessage(message, Source.OUTPUT);
@@ -202,7 +202,7 @@ public class EventStoreService2IT {
     }
 
     @Test
-    public void testFetchingPendingEventWithTimeZone() throws IOException, InterruptedException {
+    public void testFetchingPendingEventWithTimeZone() throws Exception, InterruptedException {
         // create an event based on GMT+8, then trigger retry operation based on GMT+9
         eventStoreDao.configureClock(Clock.system(ZoneId.systemDefault()));
         Message message = eventStoreService.createEventFromMessage(
@@ -226,7 +226,7 @@ public class EventStoreService2IT {
     }
 
     @Test
-    public void testMessageSerializing() throws IOException, ClassNotFoundException {
+    public void testMessageSerializing() throws Exception, ClassNotFoundException {
         DemoInsurancePolicy policy = new DemoInsurancePolicy(UUID.randomUUID().toString(), "Steve Rogers");
         DemoMessageModel messageModel = new DemoMessageModel(policy);
         Message message = eventStoreService.createEventFromMessage(

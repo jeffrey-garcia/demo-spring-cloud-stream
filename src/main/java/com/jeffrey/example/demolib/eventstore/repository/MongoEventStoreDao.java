@@ -4,6 +4,7 @@ import com.google.common.collect.Iterables;
 import com.jeffrey.example.demolib.eventstore.command.EventStoreCallbackCommand;
 import com.jeffrey.example.demolib.eventstore.config.MongoDbConfig;
 import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
+import com.mongodb.MongoException;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
@@ -17,10 +18,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.index.IndexOperations;
-import org.springframework.data.mongodb.core.index.IndexResolver;
-import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver;
-import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
+//import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -52,29 +50,29 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
 
     private MongoTemplate mongoTemplate;
 
-    private MongoMappingContext mongoMappingContext;
+//    private MongoMappingContext mongoMappingContext;
 
     public MongoEventStoreDao(
             @Autowired @Qualifier("eventStoreClock") Clock clock,
             @Autowired MongoDbConfig mongoDbConfig,
             @Autowired MongoEventStoreRepository mongoRepository,
-            @Autowired MongoTemplate mongoTemplate,
-            @Autowired MongoMappingContext mongoMappingContext
+            @Autowired MongoTemplate mongoTemplate
+//            @Autowired MongoMappingContext mongoMappingContext
     ) {
         this.clock = clock;
         this.mongoDbConfig = mongoDbConfig;
         this.mongoRepository = mongoRepository;
         this.mongoTemplate = mongoTemplate;
-        this.mongoMappingContext = mongoMappingContext;
+//        this.mongoMappingContext = mongoMappingContext;
     }
 
     @Override
     public void initializeDb() {
         // Although index creation via annotations comes in handy for many scenarios
         // consider taking over more control by setting up indices manually via IndexOperations.
-        IndexOperations indexOps = mongoTemplate.indexOps(DomainEvent.class);
-        IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
-        resolver.resolveIndexFor(DomainEvent.class).forEach(indexOps::ensureIndex);
+//        IndexOperations indexOps = mongoTemplate.indexOps(DomainEvent.class);
+//        IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
+//        resolver.resolveIndexFor(DomainEvent.class).forEach(indexOps::ensureIndex);
     }
 
     @Override
@@ -157,22 +155,12 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
         MongoClient client = mongoDbConfig.mongoClient();
         String dbName = mongoDbConfig.mongoDbFactory().getDb().getName();
 
+        // TODO: limitation, does not support standard B/G deployment for DB migration, require canary deployment approach
+
         try (ClientSession session = client.startSession()) {
-            /**
-             * Runs a provided lambda within a transaction, auto-retrying either the commit operation
-             * or entire transaction as needed (and when the error permits) to better ensure that
-             * the transaction can complete successfully.
-             *
-             * To coordinate read and write operations with a transaction, you must pass the session
-             * to each operation in the transaction (transactions are associated with a session.)
-             * At any given time, at most one open transaction for a session.
-             *
-             * Requires at least:
-             * - MongoDB 4.0 with Replica Sets
-             * - Spring-Data-Mongo 2.2
-             * - MongoDB Java Driver 3.8
-             */
-            session.withTransaction(() -> {
+            session.startTransaction();
+
+            try {
                 long retrySuccessfulCount = 0L;
                 MongoCollection<Document> collection = client.getDatabase(dbName).getCollection("DemoEventStoreV2");
 
@@ -237,9 +225,13 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                     }
                 }
 
+                session.commitTransaction();
                 LOGGER.debug("total no. of successful retry: {}", retrySuccessfulCount);
-                return retrySuccessfulCount;
-            });
+
+            } catch (MongoException mongoException) {
+                LOGGER.debug("abort tx: {}", mongoException.getMessage());
+                session.abortTransaction();
+            }
 
         } catch (RuntimeException e) {
             LOGGER.error("error processing pending event: {}", e.getMessage());

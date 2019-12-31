@@ -65,12 +65,12 @@ public class MongoDbConfig extends AbstractMongoClientConfiguration {
         return mongoClient;
     }
 
-    @Override
-    public boolean autoIndexCreation() {
-        // Automatic index creation will be turned OFF by default with the release of 3.x.
-        // Let index creation to happen either out of band or as part of the application
-        // startup using IndexOperations.
-        return false;
-    }
+//    @Override
+//    public boolean autoIndexCreation() {
+//        // Automatic index creation will be turned OFF by default with the release of 3.x.
+//        // Let index creation to happen either out of band or as part of the application
+//        // startup using IndexOperations.
+//        return false;
+//    }
 
 }
