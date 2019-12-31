@@ -24,7 +24,7 @@
 		<java.version>1.8</java.version>
 
 		<spring-cloud-dependencies.version>Greenwich.RELEASE</spring-cloud-dependencies.version>
-		<spring-cloud-sleuth-dependencies.version>2.1.4.RELEASE</spring-cloud-sleuth-dependencies.version>
+		<spring-cloud-sleuth-dependencies.version>2.1.0.RELEASE</spring-cloud-sleuth-dependencies.version>
 	</properties>
 
 	<dependencyManagement>
