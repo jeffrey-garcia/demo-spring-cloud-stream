@@ -47,11 +47,7 @@ public class EmbeddedMongoDb {
             ports = new CopyOnWriteArrayList<>();
         }
 
-        public void start(String mongoDbConnectionString) throws IOException {
-            if (!mongodProcessMap.isEmpty() || !ports.isEmpty()) {
-                return;
-            }
-
+        public synchronized void start(String mongoDbConnectionString) throws IOException {
             ConnectionString connectionString = new ConnectionString(mongoDbConnectionString);
             List<String> replicaHosts = connectionString.getHosts();
             String dbName = connectionString.getDatabase();
@@ -110,7 +106,7 @@ public class EmbeddedMongoDb {
             System.out.println(adminDatabase.runCommand(new Document("isMaster", 1)));
         }
 
-        public void finish() {
+        public synchronized void finish() {
             System.out.println(">>>>>> shutting down");
 
             if (mongoClient != null) {

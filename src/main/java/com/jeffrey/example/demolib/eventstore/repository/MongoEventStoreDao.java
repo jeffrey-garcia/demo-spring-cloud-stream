@@ -186,6 +186,8 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                  * If queries do not include the shard key or the prefix of a compound shard key,
                  * mongos performs a broadcast operation, querying all shards in the sharded cluster.
                  * These scatter/gather queries can be long running operations.
+                 *
+                 * TODO: require an additional query routine to fetch message that is not been consumed after a prolonged period of time
                  */
                 FindIterable<Document> documents = collection.find(
                         session,

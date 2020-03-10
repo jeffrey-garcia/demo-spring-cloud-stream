@@ -136,6 +136,8 @@ public class EventStoreAspect {
                 Boolean publisherConfirm = message.getHeaders().get("amqp_publishConfirm", Boolean.class);
                 if (publisherConfirm != null && publisherConfirm) {
                     // returned message would also produce a positive ack
+                    // TODO: require additional safety measure if the returned message failed to be written into DB
+                    // See also: MongoEventStoreDao.filterPendingProducerAckOrReturned
                     eventStoreService.updateEventAsProduced(message.getHeaders().get("eventId", String.class));
                     LOGGER.debug("message published: {}", message.getPayload());
                 }
