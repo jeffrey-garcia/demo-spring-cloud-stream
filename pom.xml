@@ -129,6 +129,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!--mongodb testing -->
+		<dependency>
+			<groupId>de.flapdoodle.embed</groupId>
+			<artifactId>de.flapdoodle.embed.mongo</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<!-- JUnit interceptor for Spring Cloud Stream -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>

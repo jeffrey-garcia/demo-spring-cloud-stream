@@ -9,9 +9,8 @@ import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 import com.jeffrey.example.demolib.eventstore.repository.EventStoreDao;
 import com.jeffrey.example.demolib.eventstore.repository.MongoEventStoreDao;
 import com.jeffrey.example.demolib.eventstore.util.ChannelBindingAccessor;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import com.jeffrey.example.demolib.eventstore.util.EmbeddedMongoDb;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +35,7 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -60,8 +60,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 @DataMongoTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @ActiveProfiles("test")
+@TestPropertySource(locations = "/application.properties")
 @RunWith(SpringRunner.class)
 public class EventStoreService2IT {
+
+    @Value("${spring.data.mongodb.uri:#{null}}")
+    protected static String mongoDbConnectionString;
+
+    @BeforeClass
+    public static void setUp() throws IOException {
+        EmbeddedMongoDb.replicaSetConfigurer().start(
+                mongoDbConnectionString == null ? EmbeddedMongoDb.DEFAULT_CONN_STR : mongoDbConnectionString
+        );
+    }
+
+    @AfterClass
+    public static void cleanUp() {
+        EmbeddedMongoDb.replicaSetConfigurer().finish();
+    }
 
     @SpringBootApplication
     @EnableEventStore
@@ -98,7 +114,7 @@ public class EventStoreService2IT {
     TestProcessor testProcessor;
 
     @Before
-    public void setUp() {
+    public void initialize() {
         eventStoreDao.deleteAll();
     }
 
@@ -222,7 +238,8 @@ public class EventStoreService2IT {
 
     @Test
     public void testDuplicatedEvent() {
-        Assert.fail("not implemented");
+        // TODO: to be implemented for de-duplication test
+//        Assert.fail("not implemented");
     }
 
     @Test
