@@ -24,6 +24,33 @@ A demo project of highly available message application with Spring-Cloud-Stream 
 - [References](#references)
 <br/>
 
+### <a name="spring_cloud_stream"></a>Spring Cloud Stream
+Event driven architecture is great. But without a framework, connecting
+the apps to messaging services is tricky, especially in an enterprise
+scenario, developers probably need to work with multiple messaging
+technologies (either on-premises or in the cloud).
+
+Spring Cloud Stream is a flexible messaging abstraction take care of
+the complex messaging platform integration so developers can
+concentrate on writing simple clean business logic.
+
+It unifies lots of popular messaging platforms behind one easy to
+use API including RabbitMQ, Apache Kafka, Amazon Kinesis, Google
+PubSub, Solace PubSub+, Azure Event Hubs, and Apache RocketMQ.
+
+Spring Cloud Stream also supports the use of reactive APIs where
+incoming and outgoing data is handled as continuous data flows.
+
+`IMPORTANT`
+```
+The assumption is that such reactive APIs are only valuable if they
+are given access to the actual streams of data (not the individual
+elements).
+```
+
+
+
+
 ### <a name="distributed_system"></a> The curse of Distributed System
 Messaging-based systems are distributed by definition and can fail in various ways. For example:
 - network connection problems and congestion are probably the most common class of failure.
