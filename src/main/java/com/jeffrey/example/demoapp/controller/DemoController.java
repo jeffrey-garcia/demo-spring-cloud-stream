@@ -30,7 +30,7 @@ public class DemoController {
         try {
             boolean result = producer.sendMessage(message("testing 1"));
             if (result) {
-                return ResponseEntity.accepted().build();
+                return ResponseEntity.status(HttpStatus.CREATED).body(HttpStatus.CREATED.toString());
             } else {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }

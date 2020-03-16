@@ -106,12 +106,18 @@ com:
         enabled: true
       eventstore:
         enabled: true
+        mongo:
+          collectionName: DemoEventStoreV3
         timezone: Asia/Hong_Kong
+        consumer:
+          ignoreDuplicate: true
+          expiredTimeInSec: 15
         retry:
           autoStart: true
           backoff:
-            milliseconds: 20000
+            milliseconds: 30000
           message:
+            batchSize: 3
             expired:
               seconds: 10
       gracefulShutdown:

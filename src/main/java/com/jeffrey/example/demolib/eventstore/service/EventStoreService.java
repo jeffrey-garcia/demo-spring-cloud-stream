@@ -5,12 +5,12 @@ import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 import com.jeffrey.example.demolib.eventstore.repository.EventStoreDao;
 import com.jeffrey.example.demolib.eventstore.util.ChannelBindingAccessor;
 import com.jeffrey.example.demolib.eventstore.util.ObjectMapperFactory;
+import org.aspectj.lang.ProceedingJoinPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
@@ -20,6 +20,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.retry.RetryCallback;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.IdGenerator;
 import org.springframework.util.StringUtils;
 
@@ -33,6 +34,9 @@ public class EventStoreService<T> {
 
     @Value("${com.jeffrey.example.eventstore.retry.autoStart:true}")
     boolean autoStart;
+
+    @Value("${com.jeffrey.example.eventstore.consumer.ignoreDuplicate:false}")
+    boolean ignoreDuplicate;
 
     private ApplicationContext applicationContext;
 
@@ -56,6 +60,17 @@ public class EventStoreService<T> {
         this.eventIdGenerator = eventIdGenerator;
         this.eventStoreDao = eventStoreDao;
         this.eventStoreRetryService = eventStoreRetryService;
+    }
+
+    @Transactional
+    public Object createEventFromMessageAndSend(Message message, String outputChannelName, ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        message = createEventFromMessage(message, outputChannelName);
+        /**
+         * Mark methods as transactional.
+         * advises MongoTransactionManager to also start a transaction,
+         * if the join point execution throw any exception the write to event store can be rollback
+         */
+        return proceedingJoinPoint.proceed(new Object[] {message});
     }
 
     public Message createEventFromMessage(Message message, String outputChannelName) throws IOException {
@@ -135,7 +150,7 @@ public class EventStoreService<T> {
     }
 
     @EventListener(ApplicationReadyEvent.class)
-    private void postApplicationStartup() {
+    protected void postApplicationStartup() {
         eventStoreDao.initializeDb();
 
         discoverServiceActivatingHandler();
@@ -144,6 +159,11 @@ public class EventStoreService<T> {
             eventStoreRetryService.execute((RetryCallback<Void, RuntimeException>) retryContext -> {
                 LOGGER.debug("retry count: {}", retryContext.getRetryCount());
                 fetchEventAndResend();
+                /**
+                 * The next retry should only be scheduled when the previous attempt finished, this avoid
+                 * scenario where the current retry still processing the messages while the next retry is
+                 * triggered.
+                 */
                 throw new RuntimeException("initiate next retry");
             });
         }
@@ -180,6 +200,10 @@ public class EventStoreService<T> {
 
     public String getErrorChannelName() {
         return errorChannelName;
+    }
+
+    public boolean isIgnoreDuplicate() {
+        return ignoreDuplicate;
     }
 
 }

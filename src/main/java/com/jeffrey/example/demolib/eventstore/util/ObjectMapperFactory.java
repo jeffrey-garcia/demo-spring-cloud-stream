@@ -6,8 +6,11 @@ import org.springframework.integration.support.json.Jackson2JsonObjectMapper;
 public class ObjectMapperFactory {
 
     public static Jackson2JsonObjectMapper getMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        return new Jackson2JsonObjectMapper(mapper);
+        return LazyLoader.instance;
+    }
+
+    private static class LazyLoader {
+        private static final Jackson2JsonObjectMapper instance = new Jackson2JsonObjectMapper(new ObjectMapper());
     }
 
 }

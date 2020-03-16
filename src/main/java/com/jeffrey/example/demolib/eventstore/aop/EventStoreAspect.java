@@ -35,7 +35,7 @@ public class EventStoreAspect {
         LOGGER.debug("output channel name: {} ", outputChannelBeanName);
         ImmutableMap<String,String> confirmAckChannelList = eventStoreService.getProducerChannelsWithServiceActivatorsMap();
         if (!StringUtils.isEmpty(outputChannelBeanName) && confirmAckChannelList.get(outputChannelBeanName) != null) {
-            message = eventStoreService.createEventFromMessage(message, outputChannelBeanName);
+            return eventStoreService.createEventFromMessageAndSend(message, outputChannelBeanName, proceedingJoinPoint);
         }
         return proceedingJoinPoint.proceed(new Object[] {message});
     }
@@ -48,9 +48,10 @@ public class EventStoreAspect {
         String inputChannelName = streamListener.value();
         LOGGER.debug("input channel name: {} ", inputChannelName);
 
+        Object[] args = proceedingJoinPoint.getArgs();
+
         // lookup eventId from header
         String eventId = null;
-        Object[] args = proceedingJoinPoint.getArgs();
         if (args!=null && args.length>0) {
             Class<?>[] classes = new Class[args.length];
             for (int i=0; i<args.length; i++) {
@@ -63,17 +64,27 @@ public class EventStoreAspect {
             }
         }
 
-        if (!StringUtils.isEmpty(eventId)) {
-            // add deduplication logic here
-            if (!eventStoreService.hasEventBeenConsumed(eventId)) {
+        if (StringUtils.isEmpty(eventId)) {
+            // eventId is null, allow consumer to proceed without interception by event store
+            proceedingJoinPoint.proceed(args);
+
+        } else {
+            if (!eventStoreService.isIgnoreDuplicate()) {
+                // allow consumer to proceed without de-duplication
                 proceedingJoinPoint.proceed(args);
                 LOGGER.debug("message consumed, eventId: {}", eventId);
                 eventStoreService.updateEventAsConsumed(eventId);
+
             } else {
-                LOGGER.warn("event: {} has been consumed, skipping", eventId);
+                if (!eventStoreService.hasEventBeenConsumed(eventId)) {
+                    proceedingJoinPoint.proceed(args);
+                    LOGGER.debug("message consumed, eventId: {}", eventId);
+                    eventStoreService.updateEventAsConsumed(eventId);
+                } else {
+                    LOGGER.warn("event: {} has been consumed, skipping", eventId);
+                    // skip the consumer if the event has been consumed
+                }
             }
-        } else {
-            proceedingJoinPoint.proceed(args);
         }
     }
 
@@ -135,9 +146,13 @@ public class EventStoreAspect {
                 //
                 Boolean publisherConfirm = message.getHeaders().get("amqp_publishConfirm", Boolean.class);
                 if (publisherConfirm != null && publisherConfirm) {
-                    // returned message would also produce a positive ack
-                    // TODO: require additional safety measure if the returned message failed to be written into DB
-                    // See also: MongoEventStoreDao.filterPendingProducerAckOrReturned
+                    /**
+                     * Returned message would also produce a positive ack, require additional
+                     * safety measure if the returned message timestamp failed to be written
+                     * into DB
+                     *
+                     * See also: MongoEventStoreDao.filterPendingProducerAckOrReturned
+                     */
                     eventStoreService.updateEventAsProduced(message.getHeaders().get("eventId", String.class));
                     LOGGER.debug("message published: {}", message.getPayload());
                 }

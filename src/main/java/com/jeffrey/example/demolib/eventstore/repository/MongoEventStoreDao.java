@@ -4,12 +4,16 @@ import com.google.common.collect.Iterables;
 import com.jeffrey.example.demolib.eventstore.command.EventStoreCallbackCommand;
 import com.jeffrey.example.demolib.eventstore.config.MongoDbConfig;
 import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
+import com.mongodb.BasicDBObject;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.client.result.UpdateResult;
+import com.mongodb.operation.OrderBy;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,13 +40,22 @@ import java.util.Optional;
 import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.*;
 
-@Component("MongoEventStoreDao")
+@Component("mongoEventStoreDao")
 @EnableMongoRepositories
 public class MongoEventStoreDao extends AbstractEventStoreDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoEventStoreDao.class);
 
     @Value("${com.jeffrey.example.eventstore.retry.message.expired.seconds:60}") // message sending expiry default to 60s
     private long messageExpiredTimeInSec;
+
+    @Value("${com.jeffrey.example.eventstore.mongo.collectionName:DefaultEventStore}") // use default collection name if not defined
+    private String eventStoreCollectionName;
+
+    @Value("${com.jeffrey.example.eventstore.retry.message.batchSize:1000}") // default message count per retry to 1000
+    private int retryMessageBatchSize;
+
+    @Value("${com.jeffrey.example.eventstore.consumer.expiredTimeInSec:0}") // default to 0s if not defined
+    private int messageConsumerExpiryTimeInSec;
 
     private Clock clock;
 
@@ -66,6 +79,11 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
         this.mongoRepository = mongoRepository;
         this.mongoTemplate = mongoTemplate;
         this.mongoMappingContext = mongoMappingContext;
+    }
+
+    // must be public to allow SPEL expression to invoke this method
+    public String getCollectionName() {
+        return eventStoreCollectionName;
     }
 
     @Override
@@ -94,7 +112,6 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                 .payloadType(payloadClassName)
                 .writtenOn(ZonedDateTime.now(clock).toInstant())
                 .build();
-
         return mongoRepository.save(domainEvent);
     }
 
@@ -174,7 +191,9 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
              */
             session.withTransaction(() -> {
                 long retrySuccessfulCount = 0L;
-                MongoCollection<Document> collection = client.getDatabase(dbName).getCollection("DemoEventStoreV2");
+                MongoCollection<Document> collection = client
+                                                        .getDatabase(dbName)
+                                                        .getCollection(getCollectionName());
 
                 /**
                  * query all message that was sent at least X (messageExpiredTimeInSec) seconds ago
@@ -186,17 +205,34 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                  * If queries do not include the shard key or the prefix of a compound shard key,
                  * mongos performs a broadcast operation, querying all shards in the sharded cluster.
                  * These scatter/gather queries can be long running operations.
-                 *
-                 * TODO: require an additional query routine to fetch message that is not been consumed after a prolonged period of time
                  */
-                FindIterable<Document> documents = collection.find(
-                        session,
-                        combine(
+                Bson bson;
+                if (messageConsumerExpiryTimeInSec>0) {
+                    // an additional query routine to fetch message that has not been consumed after a prolonged period of time
+                    // for example, a returned message whose returned timestamp maybe failed to record in the event store
+                    bson = combine(
+                                lt("writtenOn", currentDateTime.minusSeconds(messageExpiredTimeInSec)),
+                                or(
+                                        lt("producerAckOn", currentDateTime.minusSeconds(messageConsumerExpiryTimeInSec)),
+                                        eq("producerAckOn", null),
+                                        ne("returnedOn", null)
+                                ),
+                                eq("consumerAckOn", null)
+                            );
+                } else {
+                    bson = combine(
                                 lt("writtenOn", currentDateTime.minusSeconds(messageExpiredTimeInSec)),
                                 or(eq("producerAckOn", null),ne("returnedOn", null)),
                                 eq("consumerAckOn", null)
-                        )
-                );
+                            );
+                }
+
+                FindIterable<Document> documents = collection.find(session, bson)
+                // sort the results based on writtenOn timestamp in ascending order
+                .sort(new BasicDBObject("writtenOn", -1))
+                // limit the result set to avoid overwhelming the broker
+                .limit(retryMessageBatchSize);
+
                 LOGGER.debug("total no. of events eligible for retry: {}", Iterables.size(documents));
 
                 for (Document document:documents) {
