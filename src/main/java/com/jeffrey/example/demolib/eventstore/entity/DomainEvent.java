@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 
-@Document(collection = "DemoEventStoreV2") // specify the name of the collection in MongoDB
+@Document(collection = "#{@mongoEventStoreDao.getCollectionName()}") // retrieve the name of collection from dao
 public class DomainEvent {
 
     /**
