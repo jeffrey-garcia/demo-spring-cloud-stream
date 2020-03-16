@@ -106,14 +106,20 @@ com:
         enabled: true
       eventstore:
         enabled: true
+        mongo:
+          collectionName: DemoEventStoreV3
         timezone: Asia/Hong_Kong
+        consumer:
+          ignoreDuplicate: true # enable consumer de-duplication
+          expiredTimeInSec: 15 # time to assume retry for published message
         retry:
           autoStart: false # disable the auto retry when running integration test
           backoff:
-            milliseconds: 1500
+            batchSize: 5 # number of message per retry cycle
+            milliseconds: 1500 # short backoff duration if local test
           message:
             expired:
-              seconds: 1
+              seconds: 1 # instant message expiry if local test
       gracefulShutdown:
         enabled: true
         shutdownHook:

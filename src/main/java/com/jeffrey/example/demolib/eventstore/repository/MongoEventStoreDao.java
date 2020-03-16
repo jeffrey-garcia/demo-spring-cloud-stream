@@ -81,6 +81,7 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
         this.mongoMappingContext = mongoMappingContext;
     }
 
+    // must be public to allow SPEL expression to invoke this method
     public String getCollectionName() {
         return eventStoreCollectionName;
     }
