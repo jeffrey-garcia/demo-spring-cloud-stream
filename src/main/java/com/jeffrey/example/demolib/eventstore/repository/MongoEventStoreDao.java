@@ -163,13 +163,6 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                 DomainEvent.class,
                 getStoreName(outputChannelName)
         );
-
-//        Optional<DomainEvent> domainEvent = mongoRepository.findById(eventId);
-//        if (domainEvent.isPresent()) {
-//            return domainEvent.get().getConsumerAckOn() != null;
-//        } else {
-//            throw new RuntimeException("event not found: " + eventId);
-//        }
     }
 
     @Override
@@ -314,12 +307,10 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
         if (mongoTemplate.collectionExists(getStoreName(outputChannelName))) {
             mongoTemplate.dropCollection(getStoreName(outputChannelName));
         }
-//        mongoRepository.deleteAll();
     }
 
     @Override
     public List<DomainEvent> findAll(String outputChannelName) {
         return mongoTemplate.findAll(DomainEvent.class, getStoreName(outputChannelName));
-//        return mongoRepository.findAll();
     }
 }

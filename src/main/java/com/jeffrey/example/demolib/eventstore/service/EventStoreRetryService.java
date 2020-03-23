@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The service class for coordinating the retry routine of event store.
+ * @Author Jeffrey Garcia Wong
  */
 @Service("EventStoreRetryService")
 public class EventStoreRetryService {

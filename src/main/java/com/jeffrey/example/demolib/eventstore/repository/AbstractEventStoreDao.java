@@ -6,6 +6,12 @@ import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 import java.time.Clock;
 import java.util.Collection;
 
+/**
+ * Base class for {@link MongoEventStoreDao} implementations providing common
+ * functionality of the event store.
+ *
+ * @author Jeffrey Garcia Wong
+ */
 public abstract class AbstractEventStoreDao implements EventStoreDao {
 
     public abstract void initializeDb(Collection<String> outputChannelNames);

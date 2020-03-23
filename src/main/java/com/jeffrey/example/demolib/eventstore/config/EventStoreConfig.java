@@ -1,6 +1,7 @@
 package com.jeffrey.example.demolib.eventstore.config;
 
 import com.jeffrey.example.demolib.eventstore.aop.EventStoreAspect;
+import com.jeffrey.example.demolib.eventstore.service.EventStoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,12 @@ import java.time.Clock;
 import java.time.ZoneId;
 import java.util.UUID;
 
+/**
+ * Configuration class which hook up event store components with externalized configuration
+ *
+ * @see EventStoreAspect
+ * @author Jeffrey Garcia Wong
+ */
 @EnableAspectJAutoProxy
 @Configuration
 public class EventStoreConfig {
@@ -29,15 +36,16 @@ public class EventStoreConfig {
     String zoneIdString;
 
     /**
-     * Create the {@link RetryTemplate} for event store retry operation.
+     * Obtain a {@link RetryTemplate} for executing the retry operation of event store.
      *
      * <p>
-     * The next retry would only be scheduled when the previous
-     * attempt finished, this avoid scenario where the current
-     * retry still processing the messages while the next retry
-     * is triggered.
+     * The retry operation uses a {@link FixedBackOffPolicy} so the interval between retries
+     * are in fixed time.
+     * The next retry should only be scheduled when the previous attempt finished, this avoid
+     * scenario where the current retry still processing the messages while the next retry is
+     * triggered.
+     * See also {@link EventStoreService#postApplicationStartup()}
      * </p>
-     *
      * @return {@link RetryTemplate}
      */
     @Bean("eventStoreRetryTemplate")
@@ -51,7 +59,8 @@ public class EventStoreConfig {
     }
 
     /**
-     * Create a global system {@link Clock} configured with a specified timezone.
+     * Create a global system {@link Clock} configured with a specified timezone
+     * (Zone ID String).
      *
      * <p>
      * Default to system timezone if undefined (not recommended if the system is
@@ -59,7 +68,7 @@ public class EventStoreConfig {
      * difference in timezone.
      * </p>
      *
-     * @return {@link Clock}
+     * @return a {@link Clock}
      */
     @Bean("eventStoreClock")
     public Clock eventStoreClock() {
@@ -68,18 +77,25 @@ public class EventStoreConfig {
     }
 
     /**
-     * Create an {@link IdGenerator} that uses {@link java.security.SecureRandom}
-     * for the initial seed and Random thereafter, instead of calling
-     * {@link UUID#randomUUID()} every time as {@link org.springframework.util.JdkIdGenerator} does.
-     * This provides a better balance between securely random ids and performance.
+     * Define an {@link IdGenerator} that uses {@link java.security.SecureRandom} for the initial
+     * seed and Random thereafter, instead of calling {@link UUID#randomUUID()} every time
+     * as {@link org.springframework.util.JdkIdGenerator} does.
      *
-     * @return {@link AlternativeJdkIdGenerator}
+     * <p>This provides a better balance between securely random ids and performance.</p>
+     *
+     * @return an {@link AlternativeJdkIdGenerator}
      */
     @Bean("eventIdGenerator")
     public IdGenerator idGenerator() {
         return new AlternativeJdkIdGenerator();
     }
 
+    /**
+     * Create an {@link EventStoreAspect} which is used for intercepting the global error channel
+     * and publisher-confirm channel.
+     *
+     * @return {@link EventStoreAspect}
+     */
     @Bean("eventStoreAspect")
     public EventStoreAspect eventStoreAspect() {
         return new EventStoreAspect();

@@ -27,7 +27,7 @@ import java.lang.reflect.Method;
 //@EnableChannelInterceptor
 //@EnableEventStore
 @EnableGracefulShutdown
-//@EnableDiscoveryClient
+@EnableDiscoveryClient
 @SpringBootApplication
 public class DemoApplication {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DemoApplication.class);

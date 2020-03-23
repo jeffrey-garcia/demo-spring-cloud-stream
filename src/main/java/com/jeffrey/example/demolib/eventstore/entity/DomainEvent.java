@@ -11,7 +11,11 @@ import org.springframework.util.Assert;
 
 import java.time.Instant;
 
-//@Document(collection = "#{@mongoEventStoreDao.getStorePrefix()}") // retrieve the name of collection from dao
+/**
+ * The data model class of the event store
+ *
+ * @author Jeffrey Garcia Wong
+ */
 @Document
 public class DomainEvent {
 
@@ -129,7 +133,6 @@ public class DomainEvent {
 
     public static class Builder {
         private String id;
-        private Instant createdOn;
         private String channel;
         private String header;
         private String payload;

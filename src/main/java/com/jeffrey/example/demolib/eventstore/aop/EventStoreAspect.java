@@ -18,6 +18,11 @@ import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.support.ErrorMessage;
 import org.springframework.util.StringUtils;
 
+/**
+ * An aspect class defining advices which intercepts the producer, consumer and
+ * service activator to integrate event store without affecting the business logic
+ * @author Jeffrey Garcia Wong
+ */
 @Aspect
 public class EventStoreAspect {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreAspect.class);
@@ -25,6 +30,22 @@ public class EventStoreAspect {
     @Autowired
     private EventStoreService eventStoreService;
 
+    /**
+     * Intercept the {@link org.springframework.integration.annotation.Publisher} to
+     * execute the event store functionality
+     *
+     * <p>Extract the output channel name and the message (header and payload) from
+     * the {@link org.springframework.integration.annotation.Publisher}, then
+     * invoke the {@link EventStoreService#createEventFromMessageAndSend(Message, String, ProceedingJoinPoint)}
+     * to create an event into the event store and send the {@link Message} to remtoe broker.</p>
+     *
+     * @param proceedingJoinPoint
+     * The location of the {@link ProceedingJoinPoint} where the advice will be executed.
+     * @param publisher
+     * The {@link org.springframework.integration.annotation.Publisher} which produce the message.
+     * @param message
+     * The {@link Message} produced by the publisher
+     */
     @Around("@annotation(publisher) && args(message)")
     public Object interceptPublisher(
             ProceedingJoinPoint proceedingJoinPoint,
@@ -40,6 +61,17 @@ public class EventStoreAspect {
         return proceedingJoinPoint.proceed(new Object[] {message});
     }
 
+    /**
+     * Intercept the {@link StreamListener} to execute the event store functionality
+     *
+     * <p>Extract the event id from {@link MessageHeaders} and invoke the {@link EventStoreService}
+     * to mark the event as completed into the event store.</p>
+     *
+     * @param proceedingJoinPoint
+     * The location of the {@link ProceedingJoinPoint} where the advice will be executed.
+     * @param streamListener
+     * The {@link StreamListener} which consume the message.
+     */
     @Around("@annotation(streamListener)")
     public void interceptConsumer(
             ProceedingJoinPoint proceedingJoinPoint,
@@ -90,6 +122,31 @@ public class EventStoreAspect {
         }
     }
 
+    /**
+     * Intercept the error message channel and publisher-confirm channel globally via
+     * {@link org.springframework.integration.annotation.ServiceActivator} to execute
+     * the event store functionality
+     *
+     * <p>If the {@link org.springframework.integration.annotation.ServiceActivator}'s
+     * input channel is an error channel, the message is not received by the broker,
+     * extract the event id from the {@link MessagingException} of the {@link ErrorMessage},
+     * then invoke {@link EventStoreService} to update the message as declined/returned in the
+     * event store.</p>
+     *
+     * <p>If the {@link org.springframework.integration.annotation.ServiceActivator}'s
+     * input channel is a producer channel, extract the publisher-confirm attribute from
+     * {@link MessageHeaders} and if the message is confirm received by the broker, extract
+     * the event id from the {@link MessageHeaders}, then invoke {@link EventStoreService}
+     * to update the message as published in the event store.</p>
+     *
+     * @param proceedingJoinPoint
+     * The location of the {@link ProceedingJoinPoint} where the advice will be executed.
+     * @param serviceActivator
+     * The {@link org.springframework.integration.annotation.ServiceActivator} which is the
+     * global error message and publisher confirm channel interceptor.
+     * @param message
+     * The {@link Message} received by the {@link org.springframework.integration.annotation.ServiceActivator}.
+     */
     @Around("@annotation(serviceActivator) && args(message)")
     public void interceptPublisherConfirmOrError(
             ProceedingJoinPoint proceedingJoinPoint,
