@@ -16,21 +16,23 @@ import org.springframework.context.annotation.Configuration;
 public class DemoRabbitConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(DemoRabbitConfig.class);
 
+    public static final String ROUTING_KEY = "test.event.0";
+
     @Bean
     Queue queue() {
         // durable MUST be true otherwise the queue (and everything in it) will be deleted when message broker restart
-        return new Queue("demoapp-exchange.demoapp-queue-2");
+        return new Queue("demoapp-exchange.demoapp-queue-0");
     }
 
     @Bean
     TopicExchange exchange() {
-        return new TopicExchange("demoapp-exchange");
+        return new TopicExchange("demoapp-exchange-0");
     }
 
     @Bean
-    Binding bindingTestEvent1(Queue queue, TopicExchange exchange) {
+    Binding bindingTestEvent0(Queue queue, TopicExchange exchange) {
         // bind this queue behind the exchange topic and configure the specific routing key
-        return BindingBuilder.bind(queue).to(exchange).with("test.event.2");
+        return BindingBuilder.bind(queue).to(exchange).with(ROUTING_KEY);
     }
 
     @Bean
@@ -42,7 +44,7 @@ public class DemoRabbitConfig {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setAcknowledgeMode(AcknowledgeMode.MANUAL);
         container.setConnectionFactory(connectionFactory);
-        container.setQueueNames("demoapp-exchange.demoapp-queue-2");
+        container.setQueueNames(queue().getName());
         container.setMessageListener(rabbitReceiver);
 
         // Raising the number of concurrent consumers is recommendable

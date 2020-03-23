@@ -3,7 +3,6 @@ package com.jeffrey.example.demolib.eventstore.config;
 import com.jeffrey.example.demolib.eventstore.aop.EventStoreAspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +15,7 @@ import org.springframework.util.IdGenerator;
 
 import java.time.Clock;
 import java.time.ZoneId;
+import java.util.UUID;
 
 @EnableAspectJAutoProxy
 @Configuration
@@ -28,6 +28,18 @@ public class EventStoreConfig {
     @Value("${com.jeffrey.example.eventstore.timezone:#{null}}") // zoneIdString default null if undefined
     String zoneIdString;
 
+    /**
+     * Create the {@link RetryTemplate} for event store retry operation.
+     *
+     * <p>
+     * The next retry would only be scheduled when the previous
+     * attempt finished, this avoid scenario where the current
+     * retry still processing the messages while the next retry
+     * is triggered.
+     * </p>
+     *
+     * @return {@link RetryTemplate}
+     */
     @Bean("eventStoreRetryTemplate")
     public RetryTemplate eventStoreRetryTemplate() {
         RetryTemplate retryTemplate = new RetryTemplate();
@@ -38,20 +50,33 @@ public class EventStoreConfig {
         return retryTemplate;
     }
 
+    /**
+     * Create a global system {@link Clock} configured with a specified timezone.
+     *
+     * <p>
+     * Default to system timezone if undefined (not recommended if the system is
+     * distributed to run in multiple geographical locations which may observe
+     * difference in timezone.
+     * </p>
+     *
+     * @return {@link Clock}
+     */
     @Bean("eventStoreClock")
     public Clock eventStoreClock() {
-        // timezone default to system if undefined
         Clock clock = zoneIdString != null ? Clock.system(ZoneId.of(zoneIdString)):Clock.systemDefaultZone();
         return clock;
     }
 
+    /**
+     * Create an {@link IdGenerator} that uses {@link java.security.SecureRandom}
+     * for the initial seed and Random thereafter, instead of calling
+     * {@link UUID#randomUUID()} every time as {@link org.springframework.util.JdkIdGenerator} does.
+     * This provides a better balance between securely random ids and performance.
+     *
+     * @return {@link AlternativeJdkIdGenerator}
+     */
     @Bean("eventIdGenerator")
     public IdGenerator idGenerator() {
-        /**
-         * An IdGenerator that uses SecureRandom for the initial seed and Random thereafter,
-         * instead of calling UUID.randomUUID() every time as JdkIdGenerator does.
-         * This provides a better balance between securely random ids and performance.
-         */
         return new AlternativeJdkIdGenerator();
     }
 

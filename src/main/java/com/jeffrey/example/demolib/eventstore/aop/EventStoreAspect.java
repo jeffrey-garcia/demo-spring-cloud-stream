@@ -50,8 +50,9 @@ public class EventStoreAspect {
 
         Object[] args = proceedingJoinPoint.getArgs();
 
-        // lookup eventId from header
+        // lookup eventId and output channel name from header
         String eventId = null;
+        String outputChannelName = null;
         if (args!=null && args.length>0) {
             Class<?>[] classes = new Class[args.length];
             for (int i=0; i<args.length; i++) {
@@ -59,13 +60,14 @@ public class EventStoreAspect {
                 classes[i] = args[i].getClass();
                 if (classes[i].getName().equals(MessageHeaders.class.getName())) {
                     eventId = ((MessageHeaders)args[i]).get("eventId", String.class);
+                    outputChannelName = ((MessageHeaders)args[i]).get("outputChannelName", String.class);
                     break;
                 }
             }
         }
 
-        if (StringUtils.isEmpty(eventId)) {
-            // eventId is null, allow consumer to proceed without interception by event store
+        if (StringUtils.isEmpty(eventId) || StringUtils.isEmpty(outputChannelName)) {
+            // eventId or outputChannelName is absent, allow consumer to proceed without interception by event store
             proceedingJoinPoint.proceed(args);
 
         } else {
@@ -73,13 +75,13 @@ public class EventStoreAspect {
                 // allow consumer to proceed without de-duplication
                 proceedingJoinPoint.proceed(args);
                 LOGGER.debug("message consumed, eventId: {}", eventId);
-                eventStoreService.updateEventAsConsumed(eventId);
+                eventStoreService.updateEventAsConsumed(eventId, outputChannelName);
 
             } else {
-                if (!eventStoreService.hasEventBeenConsumed(eventId)) {
+                if (!eventStoreService.hasEventBeenConsumed(eventId, outputChannelName)) {
                     proceedingJoinPoint.proceed(args);
                     LOGGER.debug("message consumed, eventId: {}", eventId);
-                    eventStoreService.updateEventAsConsumed(eventId);
+                    eventStoreService.updateEventAsConsumed(eventId, outputChannelName);
                 } else {
                     LOGGER.warn("event: {} has been consumed, skipping", eventId);
                     // skip the consumer if the event has been consumed
@@ -119,7 +121,8 @@ public class EventStoreAspect {
 
                     org.springframework.amqp.core.Message amqpMessage = amqpMessageException.getAmqpMessage();
                     String eventId = (String) amqpMessage.getMessageProperties().getHeaders().get("eventId");
-                    eventStoreService.updateEventAsReturned(eventId);
+                    String outputChannelName = message.getHeaders().get("outputChannelName", String.class);
+                    eventStoreService.updateEventAsReturned(eventId, outputChannelName);
                     LOGGER.debug("error reason: {}, error code: {}", errorReason, errorCode);
 
                 } else if (exception instanceof NackedAmqpMessageException) {
@@ -128,7 +131,8 @@ public class EventStoreAspect {
                     String errorReason = nackedAmqpMessageException.getNackReason();
 
                     String eventId = nackedAmqpMessageException.getFailedMessage().getHeaders().get("eventId", String.class);
-                    eventStoreService.updateEventAsReturned(eventId);
+                    String outputChannelName = message.getHeaders().get("outputChannelName", String.class);
+                    eventStoreService.updateEventAsReturned(eventId, outputChannelName);
                     LOGGER.debug("error reason: {}", errorReason);
 
                 } else if (exception instanceof MessageDeliveryException) {
@@ -153,7 +157,9 @@ public class EventStoreAspect {
                      *
                      * See also: MongoEventStoreDao.filterPendingProducerAckOrReturned
                      */
-                    eventStoreService.updateEventAsProduced(message.getHeaders().get("eventId", String.class));
+                    String eventId = message.getHeaders().get("eventId", String.class);
+                    String outputChannelName = message.getHeaders().get("outputChannelName", String.class);
+                    eventStoreService.updateEventAsProduced(eventId, outputChannelName);
                     LOGGER.debug("message published: {}", message.getPayload());
                 }
             }

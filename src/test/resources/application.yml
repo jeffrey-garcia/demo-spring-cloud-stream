@@ -4,7 +4,7 @@ spring:
     stream:
       rabbit:
         bindings:
-          output:
+          output1:
             producer:
               # A SpEL expression to determine the routing key to use when publishing messages
               routingKeyExpression: '"test.event.1"'
@@ -20,7 +20,7 @@ spring:
               # - errorChannelEnabled should be true
               # - connection factory must be configured to enable publisher confirms
               confirmAckChannel: publisher-confirm
-          input:
+          input1:
             consumer:
               # The routing key with which to bind the queue to the exchange
               bindingRoutingKey: test.event.1
@@ -49,30 +49,30 @@ spring:
               # can cause the rejected/failed message to be routed to DLQ instead of infinite retry
               requeueRejected: false
       bindings:
-        input:
+        input1:
           # Name of the Exchange
-          destination: demoapp-exchange
+          destination: demoapp-exchange-1
           contentType: application/json
           binder: local_rabbit
           # Name of the Queue
-          # each application instance will have a dedicated RabbitMQ Consumer instance for its group’s Queue
-          group: demoapp-queue
+          # each application instance will have a dedicated RabbitMQ Consumer instance for its group's Queue
+          group: demoapp-queue-1
           consumer:
             # Disable default binder retry
             # if not configured, default binder will assume 3 attempts before it considered the retries are exhausted
             # if set to 1, binder internal retry will be disabled and message are routed to DLQ right-away when any exception
             maxAttempts: 1
-            # The number of concurrent consumers to initially start for each listener
+            # The number of concurrent consumers to initially execute parallel for each listener
             # raise it to scale the consumption of messages coming in from a queue.
             # however, note that any ordering guarantees are lost once multiple
             # consumers are registered.
             # In general, stick with 1 consumer for low-volume queues.
             concurrency: 1
-        output:
+        output1:
           # Name of the Exchange
-          destination: demoapp-exchange
+          destination: demoapp-exchange-1
           contentType: application/json
-          group: demoapp-queue
+          group: demoapp-queue-1
           binder: local_rabbit
           # Publisher failures are sent to an error channel for the destination,
           # works only when publisherConfirms and publisherReturns are both true
@@ -107,7 +107,7 @@ com:
       eventstore:
         enabled: true
         mongo:
-          collectionName: DemoEventStoreV3
+          collectionPrefix: DemoEventStoreV3
         timezone: Asia/Hong_Kong
         consumer:
           ignoreDuplicate: true # enable consumer de-duplication

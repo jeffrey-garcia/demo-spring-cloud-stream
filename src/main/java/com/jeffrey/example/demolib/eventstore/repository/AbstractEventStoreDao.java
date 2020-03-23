@@ -4,24 +4,25 @@ import com.jeffrey.example.demolib.eventstore.command.EventStoreCallbackCommand;
 import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 
 import java.time.Clock;
+import java.util.Collection;
 
 public abstract class AbstractEventStoreDao implements EventStoreDao {
 
-    public abstract void initializeDb();
+    public abstract void initializeDb(Collection<String> outputChannelNames);
 
     public abstract void configureClock(Clock clock);
 
     public abstract DomainEvent createEvent(
             String eventId, String header, String payload, String payloadClassName, String outputChannelName);
 
-    public abstract DomainEvent updateReturnedTimestamp(String eventId);
+    public abstract DomainEvent updateReturnedTimestamp(String eventId, String outputChannelName);
 
-    public abstract DomainEvent updateProducedTimestamp(String eventId);
+    public abstract DomainEvent updateProducedTimestamp(String eventId, String outputChannelName);
 
-    public abstract boolean hasConsumedTimeStamp(String eventId);
+    public abstract boolean hasConsumedTimeStamp(String eventId, String outputChannelName);
 
-    public abstract DomainEvent updateConsumedTimestamp(String eventId);
+    public abstract DomainEvent updateConsumedTimestamp(String eventId, String outputChannelName);
 
-    public abstract void filterPendingProducerAckOrReturned(EventStoreCallbackCommand callbackCommand);
+    public abstract void filterPendingProducerAckOrReturned(String outputChannelName, EventStoreCallbackCommand callbackCommand);
 
 }

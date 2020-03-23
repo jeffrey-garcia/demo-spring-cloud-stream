@@ -25,16 +25,6 @@ import java.util.stream.Collectors;
 @Component("ChannelBindingAccessor")
 public class ChannelBindingAccessor {
 
-//    private ChannelBindingAccessor() {}
-//
-//    public static ChannelBindingAccessor instance() {
-//        return LazyLoader.instance;
-//    }
-//
-//    private static final class LazyLoader {
-//        private static final ChannelBindingAccessor instance = new ChannelBindingAccessor();
-//    }
-
     private Environment environment;
 
     private ApplicationContext applicationContext;
@@ -106,14 +96,17 @@ public class ChannelBindingAccessor {
     }
 
     public boolean isErrorChannelEnabled(ImmutableMap<String, ServiceActivatingHandler> serviceActivatingHandlerMap) {
+        // FIXME: dynamically look up error channel configuration per output channel
         String producerErrorChannelKey = "spring.cloud.stream.bindings.output.producer.errorChannelEnabled";
         Boolean errorChannelEnabled = environment.getProperty(producerErrorChannelKey, Boolean.class);
+        // FIXME: externalize error channel name to configuration
         ServiceActivatingHandler errorChannelHandler = serviceActivatingHandlerMap.get("errorChannel");
         return (errorChannelEnabled!=null && errorChannelEnabled.booleanValue() && errorChannelHandler!=null);
     }
 
     @Nullable
     public String getServiceActivatingHandlerErrorChannel(ImmutableMap<String, ServiceActivatingHandler> serviceActivatingHandlerMap) {
+        // FIXME: externalize error channel name to configuration
         ServiceActivatingHandler errorChannelHandler = serviceActivatingHandlerMap.get("errorChannel");
         if (errorChannelHandler != null) {
             return "errorChannel";
@@ -121,6 +114,7 @@ public class ChannelBindingAccessor {
         return null;
     }
 
+    @Deprecated
     public void getAndDiscoverServiceActivatingHandlerIfAbsent() {
         if (producerChannelsWithServiceActivatorsMap != null) return;
 
@@ -174,8 +168,6 @@ public class ChannelBindingAccessor {
         );
     }
 
-
-
     private enum SupportedBinders {
         rabbit,
         kafka
@@ -206,7 +198,7 @@ public class ChannelBindingAccessor {
                 binderProperties!=null &&
                 bindingProperties.getProducer()!=null &&
                 bindingProperties.getProducer().isErrorChannelEnabled()
-                ) {
+        ) {
             final String binderType = binderProperties.getType();
 
             switch (SupportedBinders.valueOf(binderType)) {

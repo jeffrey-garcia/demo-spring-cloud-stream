@@ -1,10 +1,10 @@
 package com.jeffrey.example.demoapp.bindings;
 
+import com.jeffrey.example.demoapp.config.DemoChannelConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
-import org.springframework.cloud.stream.messaging.Sink;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Headers;
@@ -12,7 +12,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 
 import java.util.Map;
 
-@EnableBinding({Sink.class})
+@EnableBinding({DemoChannelConfig.class})
 public class DemoConsumer {
     private static final Logger LOGGER = LoggerFactory.getLogger(DemoConsumer.class);
 
@@ -88,16 +88,46 @@ public class DemoConsumer {
 //        }
 //    }
 
+    @StreamListener(DemoChannelConfig.INPUT2)
+    public void listen2(
+            @Payload String messageString,
+            @Header(name = "x-death", required = false) Map<?,?> death,
+            @Headers MessageHeaders headers
+    ) throws Exception {
+        LOGGER.debug("message received from: {}, payload: {}", DemoChannelConfig.INPUT1, messageString);
+
+        try {
+            // simulate I/O latency in the processing of message
+            Thread.sleep(1000);
+
+            // if the system crashed before the positive acknowledge,
+            // the message will be re-queued and won't be lost
+
+            // simulate any un-expected exception thrown in the business logic
+            // throw new Exception("dummy exception!");
+
+            LOGGER.debug("message processing finish");
+
+        } catch (Exception e) {
+            /**
+             * force a message to be dead-lettered
+             * requeueRejected should be set to false, otherwise throwing other exception will cause
+             * the message to be immediately re-queued (infinite retry instead of routed to DLQ)
+             */
+            throw e;
+        }
+    }
+
     /**
      * If DLQ is configured AND acknowledgement mode is AUTO
      */
-    @StreamListener(Sink.INPUT)
+    @StreamListener(DemoChannelConfig.INPUT1)
     public void listen(
             @Payload String messageString,
             @Header(name = "x-death", required = false) Map<?,?> death,
             @Headers MessageHeaders headers
     ) throws Exception {
-        LOGGER.debug("message received from: {}, payload: {}", Sink.INPUT, messageString);
+        LOGGER.debug("message received from: {}, payload: {}", DemoChannelConfig.INPUT1, messageString);
 
         try {
             // simulate I/O latency in the processing of message

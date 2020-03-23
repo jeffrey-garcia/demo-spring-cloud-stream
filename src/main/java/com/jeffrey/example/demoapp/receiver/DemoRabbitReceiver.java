@@ -14,7 +14,7 @@ public class DemoRabbitReceiver implements ChannelAwareMessageListener {
     @Override
     public void onMessage(Message message, Channel channel) throws Exception {
         // handle the consuming of message
-        LOGGER.debug("received message from queue-2: {}", message);
+        LOGGER.debug("received message: {}", message);
 
         LOGGER.debug("Received <" + message + ">");
 

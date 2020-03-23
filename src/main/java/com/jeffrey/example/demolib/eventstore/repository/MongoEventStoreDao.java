@@ -9,9 +9,7 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.Sorts;
 import com.mongodb.client.result.UpdateResult;
-import com.mongodb.operation.OrderBy;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
@@ -34,13 +32,13 @@ import org.springframework.stereotype.Component;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.*;
 
-@Component("mongoEventStoreDao")
+@Component("MongoEventStoreDao")
 @EnableMongoRepositories
 public class MongoEventStoreDao extends AbstractEventStoreDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoEventStoreDao.class);
@@ -48,8 +46,8 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
     @Value("${com.jeffrey.example.eventstore.retry.message.expired.seconds:60}") // message sending expiry default to 60s
     private long messageExpiredTimeInSec;
 
-    @Value("${com.jeffrey.example.eventstore.mongo.collectionName:DefaultEventStore}") // use default collection name if not defined
-    private String eventStoreCollectionName;
+    @Value("${com.jeffrey.example.eventstore.mongo.collectionPrefix:DefaultEventStore}") // use default collection prefix if not defined
+    private String eventStorePrefix;
 
     @Value("${com.jeffrey.example.eventstore.retry.message.batchSize:1000}") // default message count per retry to 1000
     private int retryMessageBatchSize;
@@ -81,18 +79,25 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
         this.mongoMappingContext = mongoMappingContext;
     }
 
-    // must be public to allow SPEL expression to invoke this method
-    public String getCollectionName() {
-        return eventStoreCollectionName;
+    private String getStoreName(String outputChannelName) {
+        return String.format("%s-%s", eventStorePrefix, outputChannelName);
     }
 
     @Override
-    public void initializeDb() {
+    public void initializeDb(Collection<String> outputChannelNames) {
         // Although index creation via annotations comes in handy for many scenarios
         // consider taking over more control by setting up indices manually via IndexOperations.
         IndexOperations indexOps = mongoTemplate.indexOps(DomainEvent.class);
         IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
         resolver.resolveIndexFor(DomainEvent.class).forEach(indexOps::ensureIndex);
+
+        // create the event store collections if not exist
+        for (String outputChannelName:outputChannelNames) {
+            String eventStoreName = getStoreName(outputChannelName);
+            if (!mongoTemplate.collectionExists(eventStoreName)) {
+                mongoTemplate.createCollection(eventStoreName);
+            }
+        }
     }
 
     @Override
@@ -112,11 +117,12 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                 .payloadType(payloadClassName)
                 .writtenOn(ZonedDateTime.now(clock).toInstant())
                 .build();
-        return mongoRepository.save(domainEvent);
+
+        return mongoTemplate.save(domainEvent, getStoreName(outputChannelName));
     }
 
     @Override
-    public DomainEvent updateReturnedTimestamp(String eventId) {
+    public DomainEvent updateReturnedTimestamp(String eventId, String outputChannelName) {
         // atomically query and update the document
         Query query = new Query();
         query.addCriteria(Criteria.where("id").is(eventId));
@@ -126,11 +132,13 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                 query,
                 update,
                 new FindAndModifyOptions().returnNew(true),
-                DomainEvent.class);
+                DomainEvent.class,
+                getStoreName(outputChannelName)
+        );
     }
 
     @Override
-    public DomainEvent updateProducedTimestamp(String eventId) {
+    public DomainEvent updateProducedTimestamp(String eventId, String outputChannelName) {
         // atomically query and update the document
         Query query = new Query();
         query.addCriteria(Criteria.where("id").is(eventId));
@@ -140,21 +148,32 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                 query,
                 update,
                 new FindAndModifyOptions().returnNew(true),
-                DomainEvent.class);
+                DomainEvent.class,
+                getStoreName(outputChannelName)
+        );
     }
 
     @Override
-    public boolean hasConsumedTimeStamp(String eventId) {
-        Optional<DomainEvent> domainEvent = mongoRepository.findById(eventId);
-        if (domainEvent.isPresent()) {
-            return domainEvent.get().getConsumerAckOn() != null;
-        } else {
-            throw new RuntimeException("event not found: " + eventId);
-        }
+    public boolean hasConsumedTimeStamp(String eventId, String outputChannelName) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("id").is(eventId));
+        query.addCriteria(Criteria.where("consumerAckOn").ne(null));
+        return mongoTemplate.exists(
+                query,
+                DomainEvent.class,
+                getStoreName(outputChannelName)
+        );
+
+//        Optional<DomainEvent> domainEvent = mongoRepository.findById(eventId);
+//        if (domainEvent.isPresent()) {
+//            return domainEvent.get().getConsumerAckOn() != null;
+//        } else {
+//            throw new RuntimeException("event not found: " + eventId);
+//        }
     }
 
     @Override
-    public DomainEvent updateConsumedTimestamp(String eventId) {
+    public DomainEvent updateConsumedTimestamp(String eventId, String outputChannelName) {
         // atomically query and update the document
         Query query = new Query();
         query.addCriteria(Criteria.where("id").is(eventId));
@@ -164,11 +183,13 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                 query,
                 update,
                 new FindAndModifyOptions().returnNew(true),
-                DomainEvent.class);
+                DomainEvent.class,
+                getStoreName(outputChannelName)
+        );
     }
 
     @Override
-    public void filterPendingProducerAckOrReturned(EventStoreCallbackCommand callbackCommand) {
+    public void filterPendingProducerAckOrReturned(String outputChannelName, EventStoreCallbackCommand callbackCommand) {
         LOGGER.debug("filter pending event operation");
 
         MongoClient client = mongoDbConfig.mongoClient();
@@ -193,7 +214,7 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                 long retrySuccessfulCount = 0L;
                 MongoCollection<Document> collection = client
                                                         .getDatabase(dbName)
-                                                        .getCollection(getCollectionName());
+                                                        .getCollection(getStoreName(outputChannelName));
 
                 /**
                  * query all message that was sent at least X (messageExpiredTimeInSec) seconds ago
@@ -242,12 +263,14 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                     final String payload = document.get("payload", String.class);
                     final String payloadClassName = document.get("payloadType", String.class);
 
+                    final Instant writtenOn = ZonedDateTime.now(clock).toInstant();
+
                     UpdateResult result = collection.updateOne(
                             session,
                             eq("_id", eventId),
                             combine(
                                     inc("attemptCount", +1L),
-                                    set("writtenOn", ZonedDateTime.now(clock).toInstant()),
+                                    set("writtenOn", writtenOn),
                                     unset("producerAckOn"), // remove the producer ack timestamp upon resend
                                     unset("returnedOn") // remove the return timestamp upon resend
                             )
@@ -262,6 +285,7 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
                                 .header(header)
                                 .payload(payload)
                                 .payloadType(payloadClassName)
+                                .writtenOn(writtenOn)
                                 .build();
 
                         try {
@@ -286,12 +310,16 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
     }
 
     @Override
-    public void deleteAll() {
-        mongoRepository.deleteAll();
+    public void deleteAll(String outputChannelName) {
+        if (mongoTemplate.collectionExists(getStoreName(outputChannelName))) {
+            mongoTemplate.dropCollection(getStoreName(outputChannelName));
+        }
+//        mongoRepository.deleteAll();
     }
 
     @Override
-    public List<DomainEvent> findAll() {
-        return mongoRepository.findAll();
+    public List<DomainEvent> findAll(String outputChannelName) {
+        return mongoTemplate.findAll(DomainEvent.class, getStoreName(outputChannelName));
+//        return mongoRepository.findAll();
     }
 }
