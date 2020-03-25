@@ -85,18 +85,18 @@ public class MongoEventStoreDao extends AbstractEventStoreDao {
 
     @Override
     public void initializeDb(Collection<String> outputChannelNames) {
-        // Although index creation via annotations comes in handy for many scenarios
-        // consider taking over more control by setting up indices manually via IndexOperations.
-        IndexOperations indexOps = mongoTemplate.indexOps(DomainEvent.class);
-        IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
-        resolver.resolveIndexFor(DomainEvent.class).forEach(indexOps::ensureIndex);
-
         // create the event store collections if not exist
         for (String outputChannelName:outputChannelNames) {
             String eventStoreName = getStoreName(outputChannelName);
             if (!mongoTemplate.collectionExists(eventStoreName)) {
                 mongoTemplate.createCollection(eventStoreName);
             }
+
+            // Although index creation via annotations comes in handy for many scenarios
+            // consider taking over more control by setting up indices manually via IndexOperations.
+            IndexOperations indexOps = mongoTemplate.indexOps(eventStoreName);
+            IndexResolver resolver = new MongoPersistentEntityIndexResolver(mongoMappingContext);
+            resolver.resolveIndexFor(DomainEvent.class).forEach(indexOps::ensureIndex);
         }
     }
 

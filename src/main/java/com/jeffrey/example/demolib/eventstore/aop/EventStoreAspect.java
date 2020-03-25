@@ -1,7 +1,7 @@
 package com.jeffrey.example.demolib.eventstore.aop;
 
-import com.google.common.collect.ImmutableMap;
 import com.jeffrey.example.demolib.eventstore.service.EventStoreService;
+import com.jeffrey.example.demolib.eventstore.util.ChannelBindingAccessor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -54,8 +54,9 @@ public class EventStoreAspect {
     throws Throwable {
         String outputChannelBeanName = StringUtils.isEmpty(publisher.channel()) ? publisher.value() : publisher.channel();
         LOGGER.debug("output channel name: {} ", outputChannelBeanName);
-        ImmutableMap<String,String> confirmAckChannelList = eventStoreService.getProducerChannelsWithServiceActivatorsMap();
-        if (!StringUtils.isEmpty(outputChannelBeanName) && confirmAckChannelList.get(outputChannelBeanName) != null) {
+        if (!StringUtils.isEmpty(outputChannelBeanName) &&
+                eventStoreService.getRegisteredProducerChannels().contains(outputChannelBeanName))
+        {
             return eventStoreService.createEventFromMessageAndSend(message, outputChannelBeanName, proceedingJoinPoint);
         }
         return proceedingJoinPoint.proceed(new Object[] {message});
@@ -155,8 +156,8 @@ public class EventStoreAspect {
     ) throws Throwable {
         String inputChannel = serviceActivator.inputChannel();
 
-        if (!StringUtils.isEmpty(inputChannel)) {
-            if (inputChannel.equals(eventStoreService.getErrorChannelName()) && message!=null && (message instanceof ErrorMessage)) {
+        if (!StringUtils.isEmpty(inputChannel) && message!=null) {
+            if (inputChannel.equals(ChannelBindingAccessor.GLOBAL_ERROR_CHANNEL) && (message instanceof ErrorMessage)) {
                 /**
                  * Global error messages interceptor
                  *
@@ -169,6 +170,17 @@ public class EventStoreAspect {
 
                 // capture any publisher error
                 if (exception instanceof ReturnedAmqpMessageException) {
+                    /**
+                     * Returns are when the broker returns a message because it's undeliverable
+                     * (no matching bindings on the exchange to which the message was published,
+                     * and the mandatory bit is set).
+                     *
+                     * If the message we send arrives at the switch, but the routing key is written
+                     * incorrectly, and the switch fails to forward to the queue, confirm will be
+                     * called back, and ack = true will be displayed, which means that the switch
+                     * has received the message correctly, but at the same time, the returned
+                     * Message method will be called, which will return the message we sent back.
+                     */
                     LOGGER.debug("error sending message to broker: message returned");
                     ReturnedAmqpMessageException amqpMessageException = (ReturnedAmqpMessageException) exception;
                     // producer's message not be accepted by RabbitMQ
@@ -178,17 +190,22 @@ public class EventStoreAspect {
 
                     org.springframework.amqp.core.Message amqpMessage = amqpMessageException.getAmqpMessage();
                     String eventId = (String) amqpMessage.getMessageProperties().getHeaders().get("eventId");
-                    String outputChannelName = message.getHeaders().get("outputChannelName", String.class);
+                    String outputChannelName = (String) amqpMessage.getMessageProperties().getHeaders().get("outputChannelName");
                     eventStoreService.updateEventAsReturned(eventId, outputChannelName);
                     LOGGER.debug("error reason: {}, error code: {}", errorReason, errorCode);
 
                 } else if (exception instanceof NackedAmqpMessageException) {
+                    /**
+                     * If the message we send fails to reach the switch, that is to say, the sent
+                     * switch has written an error, the confirm method will be called back immediately,
+                     * and ack = false, the cause will also be reported back.
+                     */
                     LOGGER.debug("error sending message to broker: message declined");
                     NackedAmqpMessageException nackedAmqpMessageException = (NackedAmqpMessageException) exception;
                     String errorReason = nackedAmqpMessageException.getNackReason();
 
                     String eventId = nackedAmqpMessageException.getFailedMessage().getHeaders().get("eventId", String.class);
-                    String outputChannelName = message.getHeaders().get("outputChannelName", String.class);
+                    String outputChannelName = nackedAmqpMessageException.getFailedMessage().getHeaders().get("outputChannelName", String.class);
                     eventStoreService.updateEventAsReturned(eventId, outputChannelName);
                     LOGGER.debug("error reason: {}", errorReason);
 
@@ -199,9 +216,12 @@ public class EventStoreAspect {
                     LOGGER.debug("error reason: {}", errorReason);
                 }
 
-            } else if (eventStoreService.getProducerChannelsWithServiceActivatorsMap().containsValue(inputChannel)) {
+            } else if (inputChannel.equals(ChannelBindingAccessor.GLOBAL_PUBLISHER_CONFIRM_CHANNEL)) {
                 /**
                  * Global publisher confirm channel interceptor
+                 *
+                 * Confirms are when the broker sends an ack back to the publisher,
+                 * indicating that a message was successfully routed
                  */
                 LOGGER.debug("intercepting publisher's confirm channel: {}", inputChannel);
                 //

@@ -1,6 +1,7 @@
 package com.jeffrey.example.demolib.eventstore.service;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
 import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 import com.jeffrey.example.demolib.eventstore.repository.EventStoreDao;
 import com.jeffrey.example.demolib.eventstore.util.ChannelBindingAccessor;
@@ -15,7 +16,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.integration.channel.AbstractMessageChannel;
-import org.springframework.integration.handler.ServiceActivatingHandler;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.retry.RetryCallback;
@@ -25,8 +25,10 @@ import org.springframework.util.IdGenerator;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 @Service("EventStoreService")
 public class EventStoreService<T> {
@@ -237,17 +239,16 @@ public class EventStoreService<T> {
         }
     }
 
+    private ImmutableCollection<String> registeredProducerChannels = ImmutableSet.of();
+
     @EventListener(ApplicationReadyEvent.class)
     protected void postApplicationStartup() {
-        discoverServiceActivatingHandlerAndErrorChannel();
-
-        Set<String> outputChannelNames = producerChannelsWithServiceActivatorsMap.keySet();
-
-        eventStoreDao.initializeDb(outputChannelNames);
-
+        ImmutableCollection<String> eligibleProducerChannels = discoverEligibleProducerChannels();
+        eventStoreDao.initializeDb(eligibleProducerChannels);
         if (autoStart) {
-            configureAndStartRetry(outputChannelNames);
+            configureAndStartRetry(eligibleProducerChannels);
         }
+        registeredProducerChannels = eligibleProducerChannels;
     }
 
     /**
@@ -271,50 +272,17 @@ public class EventStoreService<T> {
         }
     }
 
-    private ImmutableMap<String, String> producerChannelsWithServiceActivatorsMap = ImmutableMap.of();
-    private boolean errorChannelActivated = false;
-    private String errorChannelName = null;
-
     /**
-     * Initial startup routine to discover the following properties to setup the event store:
+     * Initial startup routine to discover all producer channels eligible for event store registration.
      *
-     * <p>
-     *     All producer's {@link AbstractMessageChannel} configured with a channel to which
-     *     to send positive delivery acknowledgments (aka publisher confirms).
-     *     <a href="https://cloud.spring.io/spring-cloud-stream-binder-rabbit/multi/multi__configuration_options.html">confirmAckChannel</a>
-     * </p>
-     *
-     * <p>
-     *     All {@link ServiceActivatingHandler} configured as publisher confirm channel or error channel.
-     * </p>
+     * @return {@link ImmutableCollection} a collection of {@link String} names for eligible producer channels.
      */
-    private void discoverServiceActivatingHandlerAndErrorChannel() {
-        final ImmutableMap<String, String> producerConfirmAckChannelsMap =
-                channelBindingAccessor.getAllProducerChannelsWithConfirmAck();
-
-        final ImmutableMap<String, ServiceActivatingHandler> serviceActivatingHandlerMap =
-                channelBindingAccessor.getAllServiceActivatingHandlerInputChannels();
-
-        errorChannelActivated = channelBindingAccessor.isErrorChannelEnabled(serviceActivatingHandlerMap);
-        errorChannelName = channelBindingAccessor.getServiceActivatingHandlerErrorChannel(serviceActivatingHandlerMap);
-
-        producerChannelsWithServiceActivatorsMap = ImmutableMap.copyOf(
-                producerConfirmAckChannelsMap.entrySet().stream().filter((entry) -> {
-                    return serviceActivatingHandlerMap.get(entry.getValue()) != null;
-                }).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()))
-        );
+    private ImmutableCollection<String> discoverEligibleProducerChannels() {
+        return channelBindingAccessor.getProducerChannelsWithServiceActivatingHandler();
     }
 
-    public ImmutableMap<String, String> getProducerChannelsWithServiceActivatorsMap() {
-        return producerChannelsWithServiceActivatorsMap;
-    }
-
-    public boolean isErrorChannelEnabled() {
-        return errorChannelActivated;
-    }
-
-    public String getErrorChannelName() {
-        return errorChannelName;
+    public ImmutableCollection getRegisteredProducerChannels() {
+        return registeredProducerChannels;
     }
 
     public boolean isIgnoreDuplicate() {
