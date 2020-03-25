@@ -21,12 +21,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * A utility class for configuring the Embedded MongoDB
+ * for running integration test in local machine.
+ *
+ * Note that usage of this class should be limited to scenario
+ * where unit-test or mocking cannot satisfy the
+ * validation of the application behavior.
+ *
+ */
 public class EmbeddedMongoDb {
 
     public static final String DEFAULT_CONN_STR =
             "mongodb://localhost:27017,localhost:27018/test?replicaSet=replocal&w=majority&wtimeoutMS=2000";
-
 
     public static ReplicaSetConfigurer replicaSetConfigurer() {
         return ReplicaSetConfigurer.instance;
@@ -34,8 +43,13 @@ public class EmbeddedMongoDb {
 
     private EmbeddedMongoDb() {}
 
+    /**
+     * Configure the replica setting of Embedded Mongo DB
+     */
     public static class ReplicaSetConfigurer {
         private static final ReplicaSetConfigurer instance = new ReplicaSetConfigurer();
+
+        private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
         private Map<MongodProcess, MongodExecutable> mongodProcessMap;
         private MongoClient mongoClient;
@@ -47,7 +61,17 @@ public class EmbeddedMongoDb {
             ports = new CopyOnWriteArrayList<>();
         }
 
+        /**
+         * Defines all the necessary operations to start the Embedded Mongo DB cluster
+         * with a replica set of 2 nodes
+         *
+         * Only 1 Embedded Mongo DB cluster would be started even if this method is
+         * invoked multiple times.
+         */
         public synchronized void start(String mongoDbConnectionString) throws IOException {
+            if (isStarted.get()) return;
+            isStarted.set(true);
+
             ConnectionString connectionString = new ConnectionString(mongoDbConnectionString);
             List<String> replicaHosts = connectionString.getHosts();
             String dbName = connectionString.getDatabase();
@@ -86,7 +110,6 @@ public class EmbeddedMongoDb {
             }
             config.put("members", members);
 
-
             System.out.println(">>>>>>>> rs.initiate()");
             adminDatabase.runCommand(new Document("replSetInitiate", config));
 
@@ -104,9 +127,21 @@ public class EmbeddedMongoDb {
 
             System.out.println(">>>>>>>> isMaster()");
             System.out.println(adminDatabase.runCommand(new Document("isMaster", 1)));
+
+            // Adding shutdown hook
+            Runtime.getRuntime().addShutdownHook(new Thread(this::finish));
         }
 
+        /**
+         * Defines all the necessary operations to stop the Embedded Mongo DB cluster
+         *
+         * Calling this method multiple times will have no effect, if the Embedded Mongo DB
+         * cluster has been stopped.
+         */
         public synchronized void finish() {
+            if (!isStarted.get()) return;
+            isStarted.set(false);
+
             System.out.println(">>>>>> shutting down");
 
             if (mongoClient != null) {

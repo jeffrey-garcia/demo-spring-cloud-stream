@@ -7,10 +7,16 @@ import com.jeffrey.example.demolib.eventstore.util.ObjectMapperFactory;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.HashIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.util.Assert;
 
 import java.time.Instant;
 
-@Document(collection = "#{@mongoEventStoreDao.getCollectionName()}") // retrieve the name of collection from dao
+/**
+ * The data model class of the event store
+ *
+ * @author Jeffrey Garcia Wong
+ */
+@Document
 public class DomainEvent {
 
     /**
@@ -34,9 +40,11 @@ public class DomainEvent {
     @JsonProperty("id")
     private String id;
 
+    @JsonProperty("createdOn")
+    private Instant createdOn;
+
     @JsonProperty("channel")
     private String channel;
-
 
     @JsonProperty("header")
     private String header;
@@ -85,6 +93,10 @@ public class DomainEvent {
 
     public String getId() {
         return id;
+    }
+
+    public Instant getCreatedOn() {
+        return createdOn;
     }
 
     public String getChannel() { return channel; }
@@ -184,8 +196,16 @@ public class DomainEvent {
         }
 
         public DomainEvent build() {
+            Assert.notNull(this.id, "id should not be null");
+            Assert.notNull(this.channel, "channel should not be null");
+            Assert.notNull(this.writtenOn, "writtenOn should not be null");
+            Assert.notNull(this.header, "header should not be null");
+            Assert.notNull(this.payload, "payload should not be null");
+            Assert.notNull(this.payloadType, "payloadType should not be null");
+
             DomainEvent domainEvent = new DomainEvent();
             domainEvent.id = this.id;
+            domainEvent.createdOn = this.writtenOn; // creation timestamp is first written timestamp
             domainEvent.channel = this.channel;
             domainEvent.header = this.header;
             domainEvent.payload = this.payload;
@@ -195,6 +215,7 @@ public class DomainEvent {
             domainEvent.returnedOn = this.returnedOn;
             domainEvent.producerAckOn = this.producerAckOn;
             domainEvent.consumerAckOn = this.consumerAckOn;
+
             return domainEvent;
         }
     }

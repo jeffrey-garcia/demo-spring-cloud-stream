@@ -1,6 +1,7 @@
 package com.jeffrey.example.demoapp;
 
 import com.google.common.io.BaseEncoding;
+import com.jeffrey.example.demoapp.config.DemoChannelConfig;
 import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
 import com.jeffrey.example.demoapp.model.DemoInsurancePolicy;
 import com.jeffrey.example.demoapp.model.DemoMessageModel;
@@ -150,6 +151,7 @@ public class DemoTests {
                 .payload("payload")
                 .payloadType(String.class.getName())
                 .writtenOn(Instant.now())
+                .channel(DemoChannelConfig.OUTPUT1)
                 .build();
 
         DomainEvent domainEvent2 = new DomainEvent.Builder()
@@ -158,6 +160,7 @@ public class DemoTests {
                 .payload("payload")
                 .payloadType(String.class.getName())
                 .writtenOn(Instant.now())
+                .channel(DemoChannelConfig.OUTPUT1)
                 .build();
 
 
