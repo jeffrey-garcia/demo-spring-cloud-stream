@@ -3,7 +3,7 @@ package com.jeffrey.example.demolib.eventstore.service;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
-import com.jeffrey.example.demolib.eventstore.repository.EventStoreDao;
+import com.jeffrey.example.demolib.eventstore.dao.EventStoreDao;
 import com.jeffrey.example.demolib.eventstore.util.ChannelBindingAccessor;
 import com.jeffrey.example.demolib.eventstore.util.ObjectMapperFactory;
 import org.aspectj.lang.ProceedingJoinPoint;

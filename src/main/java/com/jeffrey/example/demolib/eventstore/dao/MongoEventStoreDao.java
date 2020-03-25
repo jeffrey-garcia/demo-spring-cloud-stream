@@ -1,9 +1,10 @@
-package com.jeffrey.example.demolib.eventstore.repository;
+package com.jeffrey.example.demolib.eventstore.dao;
 
 import com.google.common.collect.Iterables;
 import com.jeffrey.example.demolib.eventstore.command.EventStoreCallbackCommand;
 import com.jeffrey.example.demolib.eventstore.config.MongoDbConfig;
 import com.jeffrey.example.demolib.eventstore.entity.DomainEvent;
+import com.jeffrey.example.demolib.eventstore.repository.MongoEventStoreRepository;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
@@ -39,7 +40,7 @@ import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.*;
 
 @Component("MongoEventStoreDao")
-@EnableMongoRepositories
+@EnableMongoRepositories(basePackageClasses = MongoEventStoreRepository.class)
 public class MongoEventStoreDao extends AbstractEventStoreDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoEventStoreDao.class);
 
