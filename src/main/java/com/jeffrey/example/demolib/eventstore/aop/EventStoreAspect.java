@@ -45,6 +45,8 @@ public class EventStoreAspect {
      * The {@link org.springframework.integration.annotation.Publisher} which produce the message.
      * @param message
      * The {@link Message} produced by the publisher
+     * @return {@link Object} execution result of the {@link ProceedingJoinPoint}
+     * @throws Throwable if any error occurred
      */
     @Around("@annotation(publisher) && args(message)")
     public Object interceptPublisher(
@@ -72,9 +74,11 @@ public class EventStoreAspect {
      * The location of the {@link ProceedingJoinPoint} where the advice will be executed.
      * @param streamListener
      * The {@link StreamListener} which consume the message.
+     * @return {@link Object} execution result of the {@link ProceedingJoinPoint}
+     * @throws Throwable if any error occurred
      */
     @Around("@annotation(streamListener)")
-    public void interceptConsumer(
+    public Object interceptConsumer(
             ProceedingJoinPoint proceedingJoinPoint,
             StreamListener streamListener
     ) throws Throwable {
@@ -101,23 +105,26 @@ public class EventStoreAspect {
 
         if (StringUtils.isEmpty(eventId) || StringUtils.isEmpty(outputChannelName)) {
             // eventId or outputChannelName is absent, allow consumer to proceed without interception by event store
-            proceedingJoinPoint.proceed(args);
+            return proceedingJoinPoint.proceed(args);
 
         } else {
             if (!eventStoreService.isIgnoreDuplicate()) {
                 // allow consumer to proceed without de-duplication
-                proceedingJoinPoint.proceed(args);
+                Object result = proceedingJoinPoint.proceed(args);
                 LOGGER.debug("message consumed, eventId: {}", eventId);
                 eventStoreService.updateEventAsConsumed(eventId, outputChannelName);
+                return result;
 
             } else {
                 if (!eventStoreService.hasEventBeenConsumed(eventId, outputChannelName)) {
-                    proceedingJoinPoint.proceed(args);
+                    Object result = proceedingJoinPoint.proceed(args);
                     LOGGER.debug("message consumed, eventId: {}", eventId);
                     eventStoreService.updateEventAsConsumed(eventId, outputChannelName);
+                    return result;
                 } else {
                     LOGGER.warn("event: {} has been consumed, skipping", eventId);
                     // skip the consumer if the event has been consumed
+                    return null;
                 }
             }
         }
@@ -147,9 +154,11 @@ public class EventStoreAspect {
      * global error message and publisher confirm channel interceptor.
      * @param message
      * The {@link Message} received by the {@link org.springframework.integration.annotation.ServiceActivator}.
+     * @return {@link Object} execution result of the {@link ProceedingJoinPoint}
+     * @throws Throwable if any error occurred
      */
     @Around("@annotation(serviceActivator) && args(message)")
-    public void interceptPublisherConfirmOrError(
+    public Object interceptPublisherConfirmOrError(
             ProceedingJoinPoint proceedingJoinPoint,
             org.springframework.integration.annotation.ServiceActivator serviceActivator,
             Message<?> message
@@ -241,7 +250,7 @@ public class EventStoreAspect {
                 }
             }
         }
-        proceedingJoinPoint.proceed(new Object[] {message});
+        return proceedingJoinPoint.proceed(new Object[] {message});
     }
 
 }

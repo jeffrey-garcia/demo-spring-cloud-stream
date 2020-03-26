@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.cloud.stream.binder.ProducerProperties;
 import org.springframework.cloud.stream.binding.Bindable;
 import org.springframework.cloud.stream.config.BinderProperties;
@@ -15,7 +16,12 @@ import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.channel.AbstractMessageChannel;
+import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.channel.PublishSubscribeChannel;
+import org.springframework.integration.handler.MessageProcessor;
+import org.springframework.integration.handler.MethodInvokingMessageProcessor;
 import org.springframework.integration.handler.ServiceActivatingHandler;
+import org.springframework.integration.handler.support.MessagingMethodInvokerHelper;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
@@ -30,8 +36,17 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * A handy utility class for accessing any input/output message channels,
- * and the service activating handler associated with these channels.
+ * A handy utility class for accessing the {@link BindingServiceProperties}
+ * established between the {@link Bindable} components and the external
+ * messaging systems.
+ *
+ * The {@link Bindable} components are typically {@link org.springframework.messaging.MessageChannel}
+ * provided by application producer/consumer. A message channel represents the “pipe” of a
+ * pipes-and-filters architecture. Producers send messages to a channel, and consumers receive
+ * messages from a channel. The message channel therefore decouples the messaging components
+ * and also provides a convenient point for interception and monitoring of messages.
+ *
+ * See <a href="https://docs.spring.io/spring-boot/docs/current/reference/html/spring-boot-features.html#boot-features-messaging">spring messaging</a>
  *
  * @Author Jeffrey Garcia Wong
  */
@@ -45,6 +60,8 @@ public class ChannelBindingAccessor {
 
     private BindingServiceProperties bindingServiceProperties;
 
+    private BeanFactory beanFactory;
+
     public static final String GLOBAL_ERROR_CHANNEL = "errorChannel";
 
     public static final String GLOBAL_PUBLISHER_CONFIRM_CHANNEL = "publisher-confirm";
@@ -52,11 +69,13 @@ public class ChannelBindingAccessor {
     public ChannelBindingAccessor(
             Environment environment,
             ApplicationContext applicationContext,
-            BindingServiceProperties bindingServiceProperties
+            BindingServiceProperties bindingServiceProperties,
+            BeanFactory beanFactory
     ) {
         this.environment = environment;
         this.applicationContext = applicationContext;
         this.bindingServiceProperties = bindingServiceProperties;
+        this.beanFactory = beanFactory;
     }
 
     /**
@@ -119,10 +138,43 @@ public class ChannelBindingAccessor {
         return ImmutableMap.copyOf(producerConfirmAckChannelsMap);
     }
 
+    ImmutableMap<String, ServiceActivatingHandler> configureServiceActivator() {
+        final Map<String, ServiceActivatingHandler> serviceActivatingHandlerMap = new HashMap<>();
+
+        DirectChannel publisherConfirmChannel = applicationContext.getBean(GLOBAL_PUBLISHER_CONFIRM_CHANNEL, DirectChannel.class);
+        PublishSubscribeChannel errorChannel = applicationContext.getBean(GLOBAL_ERROR_CHANNEL, PublishSubscribeChannel.class);
+
+        MethodInvokingMessageProcessor publisherConfirmProcessor = new MethodInvokingMessageProcessor(new Object() {
+            @SuppressWarnings("unused")
+            public void onPublisherConfirm(Message<?> message) {
+                LOGGER.debug("on publisher confirm: {}", message);
+                //TODO: add event store handling to mark the event as produced
+            }
+        }, "onPublisherConfirm");
+        publisherConfirmProcessor.setBeanFactory(beanFactory);
+        ServiceActivatingHandler publisherConfirmHandler = new ServiceActivatingHandler(publisherConfirmProcessor);
+        publisherConfirmChannel.subscribe(publisherConfirmHandler);
+        serviceActivatingHandlerMap.put(GLOBAL_PUBLISHER_CONFIRM_CHANNEL, publisherConfirmHandler);
+
+        MethodInvokingMessageProcessor errorChannelProcessor = new MethodInvokingMessageProcessor(new Object() {
+            @SuppressWarnings("unused")
+            public void onError(Message<?> message) {
+                LOGGER.debug("on error: {}", message);
+                //TODO: add event store handling to mark the event as returned/declined
+            }
+        }, "onError");
+        errorChannelProcessor.setBeanFactory(beanFactory);
+        ServiceActivatingHandler errorChannelHandler = new ServiceActivatingHandler(errorChannelProcessor);
+        errorChannel.subscribe(errorChannelHandler);
+        serviceActivatingHandlerMap.put(GLOBAL_ERROR_CHANNEL, errorChannelHandler);
+
+        return ImmutableMap.copyOf(serviceActivatingHandlerMap);
+    }
+
     ImmutableMap<String, ServiceActivatingHandler> getAllServiceActivatingHandlersWithInputChannels() {
         final Map<String, ServiceActivatingHandler> serviceActivatingHandlerMap = new HashMap<>();
 
-        // scan all service activator
+        // scan all global service activator annotation
         String[] serviceActivatingHandlerBeanNames = applicationContext.getBeanNamesForType(ServiceActivatingHandler.class);
         for (String serviceActivatingHandlerBeanName:serviceActivatingHandlerBeanNames) {
             ServiceActivatingHandler serviceActivatingHandler = applicationContext.getBean(serviceActivatingHandlerBeanName, ServiceActivatingHandler.class);
@@ -148,7 +200,12 @@ public class ChannelBindingAccessor {
             }
         }
 
-        return ImmutableMap.copyOf(serviceActivatingHandlerMap);
+        if (serviceActivatingHandlerBeanNames.length > 0) {
+            return ImmutableMap.copyOf(serviceActivatingHandlerMap);
+        } else {
+            // no global service activator annotation found, manually create service activator
+            return configureServiceActivator();
+        }
     }
 
     private enum SupportedBinders {
@@ -206,6 +263,9 @@ public class ChannelBindingAccessor {
                         SupportedBinders.rabbit.name(),
                         beanName);
                 String confirmAckChannelName = environment.getProperty(confirmAckChannelKey);
+
+                // TODO: publisher-confirm and error channel can be different per producer
+
                 if (!GLOBAL_PUBLISHER_CONFIRM_CHANNEL.equals(confirmAckChannelName)) {
                     LOGGER.warn("producer: {} confirmAckChannel: {} not match", beanName, confirmAckChannelName);
                     return null;
@@ -250,7 +310,7 @@ public class ChannelBindingAccessor {
     }
 
     @ServiceActivator(inputChannel = GLOBAL_ERROR_CHANNEL)
-    public void error(Message<?> message) {
+    public void onError(Message<?> message) {
         LOGGER.debug("on error: {}", message);
     }
 
