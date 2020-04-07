@@ -70,12 +70,13 @@ spring:
             maxAttempts: 1
             concurrency: 1
         input1:
-          # Name of the Exchange
+          # Set explicit name of the Exchange
           destination: demoapp-exchange-1
           contentType: application/json
           binder: local_rabbit
-          # Name of the Queue
-          # each application instance will have a dedicated RabbitMQ Consumer instance for its group’s Queue
+          # Set explicit name of the Queue
+          # allows multiple instance of the consumer to subscribe to the same message queue
+          # if group not specified, by default an anonymous queue will be assigned to each consumer instance
           group: demoapp-queue-1
           consumer:
             # Disable default binder retry
