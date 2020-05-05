@@ -18,10 +18,8 @@ import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.channel.AbstractMessageChannel;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.channel.PublishSubscribeChannel;
-import org.springframework.integration.handler.MessageProcessor;
 import org.springframework.integration.handler.MethodInvokingMessageProcessor;
 import org.springframework.integration.handler.ServiceActivatingHandler;
-import org.springframework.integration.handler.support.MessagingMethodInvokerHelper;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
@@ -31,9 +29,9 @@ import org.springframework.util.StringUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * A handy utility class for accessing the {@link BindingServiceProperties}
@@ -141,32 +139,45 @@ public class ChannelBindingAccessor {
     ImmutableMap<String, ServiceActivatingHandler> configureServiceActivator() {
         final Map<String, ServiceActivatingHandler> serviceActivatingHandlerMap = new HashMap<>();
 
-        DirectChannel publisherConfirmChannel = applicationContext.getBean(GLOBAL_PUBLISHER_CONFIRM_CHANNEL, DirectChannel.class);
-        PublishSubscribeChannel errorChannel = applicationContext.getBean(GLOBAL_ERROR_CHANNEL, PublishSubscribeChannel.class);
+        /**
+         * [IMPORTANT]
+         * Publisher Confirm direct channel doesn't work in SCSt Hoxton.SR2,SR3,SR4
+         */
 
-        MethodInvokingMessageProcessor publisherConfirmProcessor = new MethodInvokingMessageProcessor(new Object() {
-            @SuppressWarnings("unused")
-            public void onPublisherConfirm(Message<?> message) {
-                LOGGER.debug("on publisher confirm: {}", message);
-                //TODO: add event store handling to mark the event as produced
-            }
-        }, "onPublisherConfirm");
-        publisherConfirmProcessor.setBeanFactory(beanFactory);
-        ServiceActivatingHandler publisherConfirmHandler = new ServiceActivatingHandler(publisherConfirmProcessor);
-        publisherConfirmChannel.subscribe(publisherConfirmHandler);
-        serviceActivatingHandlerMap.put(GLOBAL_PUBLISHER_CONFIRM_CHANNEL, publisherConfirmHandler);
+        // defensively lookup the publisher-confirm and errorChannel bean
+        String[] directChannels = applicationContext.getBeanNamesForType(DirectChannel.class);
+        String[] publisherSubscribeChannels = applicationContext.getBeanNamesForType(PublishSubscribeChannel.class);
 
-        MethodInvokingMessageProcessor errorChannelProcessor = new MethodInvokingMessageProcessor(new Object() {
-            @SuppressWarnings("unused")
-            public void onError(Message<?> message) {
-                LOGGER.debug("on error: {}", message);
-                //TODO: add event store handling to mark the event as returned/declined
-            }
-        }, "onError");
-        errorChannelProcessor.setBeanFactory(beanFactory);
-        ServiceActivatingHandler errorChannelHandler = new ServiceActivatingHandler(errorChannelProcessor);
-        errorChannel.subscribe(errorChannelHandler);
-        serviceActivatingHandlerMap.put(GLOBAL_ERROR_CHANNEL, errorChannelHandler);
+        // programmatically create the service activator and binds it with the corresponding channel
+        if (Arrays.asList(directChannels).contains(GLOBAL_PUBLISHER_CONFIRM_CHANNEL)) {
+            DirectChannel publisherConfirmChannel = applicationContext.getBean(GLOBAL_PUBLISHER_CONFIRM_CHANNEL, DirectChannel.class);
+            MethodInvokingMessageProcessor<Object> publisherConfirmProcessor = new MethodInvokingMessageProcessor<>(new Object() {
+                @SuppressWarnings("unused")
+                public void onPublisherConfirm(Message<?> message) {
+                    LOGGER.debug("on publisher confirm: {}", message);
+                    //TODO: add event store handling to mark the event as produced
+                }
+            }, "onPublisherConfirm");
+            publisherConfirmProcessor.setBeanFactory(beanFactory);
+            ServiceActivatingHandler publisherConfirmHandler = new ServiceActivatingHandler(publisherConfirmProcessor);
+            publisherConfirmChannel.subscribe(publisherConfirmHandler);
+            serviceActivatingHandlerMap.put(GLOBAL_PUBLISHER_CONFIRM_CHANNEL, publisherConfirmHandler);
+        }
+
+        if (Arrays.asList(publisherSubscribeChannels).contains(GLOBAL_ERROR_CHANNEL)) {
+            PublishSubscribeChannel errorChannel = applicationContext.getBean(GLOBAL_ERROR_CHANNEL, PublishSubscribeChannel.class);
+            MethodInvokingMessageProcessor<Object> errorChannelProcessor = new MethodInvokingMessageProcessor<>(new Object() {
+                @SuppressWarnings("unused")
+                public void onError(Message<?> message) {
+                    LOGGER.debug("on error: {}", message);
+                    //TODO: add event store handling to mark the event as returned/declined
+                }
+            }, "onError");
+            errorChannelProcessor.setBeanFactory(beanFactory);
+            ServiceActivatingHandler errorChannelHandler = new ServiceActivatingHandler(errorChannelProcessor);
+            errorChannel.subscribe(errorChannelHandler);
+            serviceActivatingHandlerMap.put(GLOBAL_ERROR_CHANNEL, errorChannelHandler);
+        }
 
         return ImmutableMap.copyOf(serviceActivatingHandlerMap);
     }
@@ -309,13 +320,4 @@ public class ChannelBindingAccessor {
         }
     }
 
-    @ServiceActivator(inputChannel = GLOBAL_ERROR_CHANNEL)
-    public void onError(Message<?> message) {
-        LOGGER.debug("on error: {}", message);
-    }
-
-    @ServiceActivator(inputChannel = GLOBAL_PUBLISHER_CONFIRM_CHANNEL)
-    public void onPublisherConfirm(Message<?> message) {
-        LOGGER.debug("on publisher confirm: {}", message);
-    }
 }

@@ -243,6 +243,7 @@ public class EventStoreService<T> {
 
     @EventListener(ApplicationReadyEvent.class)
     protected void postApplicationStartup() {
+        // TODO: handle double-post of application ready event from spring
         ImmutableCollection<String> eligibleProducerChannels = discoverEligibleProducerChannels();
         eventStoreDao.initializeDb(eligibleProducerChannels);
         if (autoStart) {

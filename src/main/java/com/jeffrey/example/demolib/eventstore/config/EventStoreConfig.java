@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.messaging.Message;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.AlwaysRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
@@ -25,7 +27,7 @@ import java.util.UUID;
  * @author Jeffrey Garcia Wong
  */
 @EnableAspectJAutoProxy
-@Configuration
+@Configuration("EventStoreConfig")
 public class EventStoreConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventStoreConfig.class);
 
@@ -101,4 +103,13 @@ public class EventStoreConfig {
         return new EventStoreAspect();
     }
 
+    @ServiceActivator(inputChannel = "errorChannel")
+    public void onError(Message<?> message) {
+        LOGGER.debug("on error: {}", message);
+    }
+
+    @ServiceActivator(inputChannel = "publisher-confirm")
+    public void onPublisherConfirm(Message<?> message) {
+        LOGGER.debug("on publisher confirm: {}", message);
+    }
 }
