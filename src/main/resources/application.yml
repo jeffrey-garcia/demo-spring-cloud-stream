@@ -138,16 +138,16 @@ com:
           collectionPrefix: DemoEventStoreV3
         timezone: Asia/Hong_Kong
         consumer:
-          ignoreDuplicate: true
-          expiredTimeInSec: 15
+          ignoreDuplicate: true # enable consumer de-duplication
+          expiredTimeInSec: 15 # time to assume retry for published message (not yet consumed)
         retry:
-          autoStart: true
+          autoStart: true # disable auto retry if local test
           backoff:
-            milliseconds: 30000
+            milliseconds: 30000 # backoff time before initiate next retry (short backoff duration if local test)
           message:
-            batchSize: 3
+            batchSize: 3 # number of message per retry cycle
             expired:
-              seconds: 10
+              seconds: 10 # the time to consider resending the message sent X seconds ago (short message expiry if local test)
       gracefulShutdown:
         enabled: true
         shutdownHook:
